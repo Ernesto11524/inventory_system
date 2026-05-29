@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+COPY ../../packages/shared/package.json /shared/package.json
+
+# Install dependencies
+RUN npm install -g pnpm
+RUN pnpm install
+
+COPY . .
+COPY ../../packages/shared /shared
+
+EXPOSE 4000
+CMD ["pnpm", "dev"]

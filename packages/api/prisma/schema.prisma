@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  password     String
+  role         Role         @default(staff)
+  posBarCodeOnly Boolean     @default(false)
+  createdAt    DateTime     @default(now())
+
+  stockEntries StockEntry[]
+  sessions     Session[]
+  activityLogs ActivityLog[]
+  cashierSales Sale[]        @relation("CashierSales")
+
+  @@map("users")
+}
+
+enum Role {
+  admin
+  staff
+}
+
+// ─── Session (refresh tokens) ─────────────────────────────────────────────────
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@map("sessions")
+}
+
+// ─── Category ─────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+
+  products    Product[]
+
+  @@map("categories")
+}
+
+// ─── Product ──────────────────────────────────────────────────────────────────
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  sku           String   @unique
+  barcode       String?  @unique
+  description   String?
+  imageUrl      String?
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  price         Decimal  @db.Decimal(10, 2)
+  costPrice     Decimal  @db.Decimal(10, 2)
+  unit          String   @default("pcs")
+  minStockLevel Int      @default(10)
+  deletedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  stockEntries  StockEntry[]
+  inventory     Inventory?
+  alerts        Alert[]
+  saleItems     SaleItem[]
+  poItems       POItem[]
+
+  @@index([sku])
+  @@index([barcode])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("products")
+}
+
+// ─── Stock Entry (immutable ledger) ──────────────────────────────────────────
+
+model StockEntry {
+  id          String          @id @default(uuid())
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id])
+  quantity    Int
+  type        StockEntryType
+  note        String?
+  performedBy String
+  performer   User            @relation(fields: [performedBy], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([type])
+  @@map("stock_entries")
+}
+
+enum StockEntryType {
+  restock
+  sale
+  adjustment
+  return
+}
+
+// ─── Inventory (materialized current stock) ──────────────────────────────────
+
+model Inventory {
+  id           String   @id @default(uuid())
+  productId    String   @unique
+  product      Product  @relation(fields: [productId], references: [id])
+  currentStock Int      @default(0)
+  lastUpdated  DateTime @default(now()) @updatedAt
+
+  @@map("inventory")
+}
+
+// ─── Supplier ─────────────────────────────────────────────────────────────────
+
+model Supplier {
+  id           String          @id @default(uuid())
+  name         String
+  contactName  String?
+  email        String?
+  phone        String?
+  address      String?
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// ─── Purchase Order ───────────────────────────────────────────────────────────
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  supplierId String
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  status     PurchaseOrderStatus @default(draft)
+  note       String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  items      POItem[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+enum PurchaseOrderStatus {
+  draft
+  sent
+  received
+}
+
+// ─── PO Item ──────────────────────────────────────────────────────────────────
+
+model POItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitCost        Decimal       @db.Decimal(10, 2)
+
+  @@map("po_items")
+}
+
+// ─── Alert ────────────────────────────────────────────────────────────────────
+
+model Alert {
+  id        String    @id @default(uuid())
+  productId String
+  product   Product   @relation(fields: [productId], references: [id])
+  type      AlertType
+  message   String
+  resolved  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([productId])
+  @@index([resolved])
+  @@map("alerts")
+}
+
+enum AlertType {
+  low_stock
+  out_of_stock
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // login, logout, sale, stock_entry, etc.
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+model Sale {
+  id             String       @id @default(uuid())
+  receiptNo      String       @unique
+  customerId     String?
+  customerName   String?
+  customerPhone  String?
+  paymentMethod  String       @default("cash")
+  subtotal       Float
+  discount       Float        @default(0)
+  total          Float
+  amountPaid     Float        @default(0)
+  change         Float        @default(0)
+  note           String?
+  cashierId      String
+  cashier        User         @relation("CashierSales", fields: [cashierId], references: [id])
+  items          SaleItem[]
+  createdAt      DateTime     @default(now())
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id         String   @id @default(uuid())
+  saleId     String
+  sale       Sale     @relation(fields: [saleId], references: [id])
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  costPrice  Float    @default(0)
+  subtotal   Float
+  createdAt  DateTime @default(now())
+
+  @@map("sale_items")
+}
+
+// ─── App Settings (singleton) ─────────────────────────────────────────────────
+
+model AppSettings {
+  id                String   @id @default("singleton")
+  storeName         String   @default("StockFlow")
+  storeTagline      String   @default("Inventory System")
+  storeLogo         String?
+  storeEmail        String?
+  storePhone        String?
+  storeAddress      String?
+  currency          String   @default("GHS")
+  currencySymbol    String   @default("GH₵")
+  paystackPublicKey String?
+  paystackSecretKey String?
+  updatedAt         DateTime @updatedAt
+
+  @@map("app_settings")
+}

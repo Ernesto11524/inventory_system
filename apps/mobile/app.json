@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "StockFlow",
+    "slug": "stockflow-inventory",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0369a1"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.stockflow.inventory",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is required for barcode scanning",
+        "NSPhotoLibraryUsageDescription": "Photo library access for product images"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0369a1"
+      },
+      "package": "com.stockflow.inventory",
+      "permissions": ["CAMERA", "VIBRATE", "RECEIVE_BOOT_COMPLETED", "NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        { "cameraPermission": "Allow StockFlow to access your camera for barcode scanning" }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0369a1",
+          "sounds": []
+        }
+      ]
+    ],
+    "scheme": "stockflow",
+    "extra": {
+      "router": { "origin": false },
+      "eas": { "projectId": "your-eas-project-id" }
+    }
+  }
+}
