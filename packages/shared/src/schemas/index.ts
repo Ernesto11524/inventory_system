@@ -37,7 +37,7 @@ export const productSchema = z.object({
   imageUrl: z.string().url().optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),
   price: z.number().min(0, 'Price must be non-negative'),
-  costPrice: z.number().min(0, 'Cost price must be non-negative'),
+  costPrice: z.number().min(0, 'Cost price must be non-negative').optional().default(0),
   unit: z.string().min(1, 'Unit is required').max(20).default('pcs'),
   minStockLevel: z.number().int().min(0, 'Min stock level must be non-negative').default(10),
 });

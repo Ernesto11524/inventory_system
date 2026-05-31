@@ -61,7 +61,7 @@ export async function getUnsyncedSales(): Promise<PendingSale[]> {
     const tx = db.transaction('pending_sales', 'readonly');
     const store = tx.objectStore('pending_sales');
     const index = store.index('synced');
-    const request = index.getAll(IDBKeyRange.only(false)); // false = not synced
+    const request = index.getAll(false); // false = not synced
     request.onsuccess = () => resolve(request.result || []);
     request.onerror = () => reject(request.error);
   });

@@ -133,7 +133,7 @@ function ProductForm({
 
         <div>
           <label className="label">Cost Price <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
-          <input {...register('costPrice', { valueAsNumber: true })} type="number" step="0.01" className="input" placeholder="0.00 (leave blank if unknown)" />
+          <input {...register('costPrice', { setValueAs: (v) => v === '' || v === null || v === undefined ? undefined : Number(v) })} type="number" step="0.01" className="input" placeholder="0.00 (leave blank if unknown)" />
           <p className="text-xs text-gray-400 mt-1">If left blank, profit calculations will show GH₵0 for this product</p>
         </div>
 
