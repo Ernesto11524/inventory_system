@@ -1,15 +1,6 @@
 {
   "name": "@inventory/shared",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-=======
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +12,6 @@
   },
   "scripts": {
     "build": "tsc",
->>>>>>> bf815c4 (No description)
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
