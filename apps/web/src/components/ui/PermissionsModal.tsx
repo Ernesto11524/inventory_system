@@ -16,14 +16,19 @@ interface PermissionsModalProps {
 export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess }: PermissionsModalProps) {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
 
-  const { data } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['permissions', userId],
-    queryFn: () => get<{ user: any; permissions: UserPermissions }>(`/permissions/${userId}`),
-    enabled: isOpen,
+    queryFn: async () => {
+      const response = await get<any>(`/permissions/${userId}`);
+      return response;
+    },
+    enabled: isOpen && !!userId,
   });
 
   useEffect(() => {
-    if (data?.data?.permissions) {
+    if (data?.permissions) {
+      setPermissions(data.permissions);
+    } else if (data?.data?.permissions) {
       setPermissions(data.data.permissions);
     }
   }, [data]);
@@ -38,7 +43,28 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update permissions'),
   });
 
-  if (!isOpen || !permissions) return null;
+  if (!isOpen) return null;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+          <p className="text-gray-600">Loading permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !permissions) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <p className="text-red-600 mb-4">{error ? 'Failed to load permissions' : 'No permissions data'}</p>
+          <button onClick={onClose} className="btn-secondary">Close</button>
+        </div>
+      </div>
+    );
+  }
 
   const toggle = (path: string[], value: boolean) => {
     const newPerms = JSON.parse(JSON.stringify(permissions));
