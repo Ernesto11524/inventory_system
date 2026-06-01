@@ -1,6 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'staff';
+export type UserRole = 'admin' | 'manager' | 'staff';
 
 export type StockEntryType = 'restock' | 'sale' | 'adjustment' | 'return';
 
@@ -122,6 +122,23 @@ export interface Alert {
   message: string;
   resolved: boolean;
   createdAt: string;
+}
+
+// ─── Day Session ─────────────────────────────────────────────────────────────
+
+export type DaySessionStatus = 'open' | 'closed';
+
+export interface DaySession {
+  id: string;
+  date: string;
+  openedAt: string;
+  closedAt: string | null;
+  openedBy: string;
+  opener?: Pick<User, 'id' | 'name'>;
+  closedBy: string | null;
+  closer?: Pick<User, 'id' | 'name'> | null;
+  notes: string | null;
+  status: DaySessionStatus;
 }
 
 // ─── API Response ─────────────────────────────────────────────────────────────

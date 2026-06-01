@@ -64,6 +64,8 @@ authRouter.post('/login', authLimiter, validate(loginSchema), async (req: Reques
     },
   });
 
+  await logActivity(user.id, 'login', `Logged in from ${req.ip}`, req.ip);
+
   successResponse(res, {
     user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
     tokens: { accessToken, refreshToken },
@@ -126,6 +128,8 @@ authRouter.post('/logout', authenticate, async (req: Request, res: Response) => 
   if (refreshToken) {
     await prisma.session.deleteMany({ where: { refreshToken } });
   }
+
+  await logActivity(req.user!.userId, 'logout', `Logged out`, req.ip);
 
   successResponse(res, null, 'Logged out successfully');
 });

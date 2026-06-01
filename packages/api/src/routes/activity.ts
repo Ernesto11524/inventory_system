@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma/client';
 import { successResponse, buildPagination } from '../utils/response';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 
 export const activityRouter = Router();
 activityRouter.use(authenticate);
-activityRouter.use(requireAdmin);
+activityRouter.use(requireManagerOrAdmin);
 
 // GET /api/activity - Get all activity logs (admin only)
 activityRouter.get('/', async (req: Request, res: Response) => {

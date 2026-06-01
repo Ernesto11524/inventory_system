@@ -44,7 +44,7 @@ function WorkerCard({ worker, onViewDetails }: {
             <p className="text-xs text-gray-500">{worker.user.email}</p>
             <span className={clsx(
               'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-              worker.user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700',
+              worker.user.role === 'admin' ? 'bg-purple-100 text-purple-700' : worker.user.role === 'manager' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700',
             )}>
               {worker.user.role}
             </span>
@@ -140,6 +140,7 @@ function AddUserModal({ onClose }: { onClose: () => void }) {
         <label className="label">Role *</label>
         <select className="input" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
           <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
           <option value="admin">Admin</option>
         </select>
       </div>

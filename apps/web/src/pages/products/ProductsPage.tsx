@@ -59,7 +59,7 @@ function ProductForm({
       ? {
           name: product.name,
           sku: product.sku,
-          barcode: product.barcode || "",
+          barcode: product.barcode || undefined,
           description: product.description || "",
           categoryId: product.categoryId || "",
           price: product.price,

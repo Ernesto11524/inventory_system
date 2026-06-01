@@ -13,7 +13,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
     .regex(/[0-9]/, 'Must contain at least one number'),
-  role: z.enum(['admin', 'staff']).default('staff'),
+  role: z.enum(['admin', 'manager', 'staff']).default('staff'),
 });
 
 export const refreshTokenSchema = z.object({
@@ -32,7 +32,7 @@ export const categorySchema = z.object({
 export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required').max(200),
   sku: z.string().min(1, 'SKU is required').max(50).regex(/^[A-Z0-9\-_]+$/i, 'SKU can only contain letters, numbers, hyphens, and underscores'),
-  barcode: z.string().max(50).optional().nullable(),
+  barcode: z.preprocess(v => (!v ? null : v), z.string().max(50).nullable().optional()),
   description: z.string().max(1000).optional().nullable(),
   imageUrl: z.string().url().optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),

@@ -21,6 +21,7 @@ import { usersRouter } from './routes/users';
 import { activityRouter } from './routes/activity';
 import { salesRouter } from './routes/sales';
 import { settingsRouter } from './routes/settings';
+import { daySessionsRouter } from './routes/daySessions';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
@@ -102,6 +103,7 @@ app.use('/api/suppliers', suppliersRouter);
 app.use('/api/purchase-orders', purchaseOrdersRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/day-sessions', daySessionsRouter);
 
 // ─── Error Handlers ───────────────────────────────────────────────────────────
 

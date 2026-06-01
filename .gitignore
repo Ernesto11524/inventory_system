@@ -12,7 +12,10 @@ coverage/
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
-prisma/migrations/
 apps/mobile/.expo/
 apps/mobile/android/
 apps/mobile/ios/
+
+# Deployment utility scripts
+*.py
+

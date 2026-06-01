@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Package, Warehouse, Bell, Truck,
   ShoppingCart, BarChart3, Menu, X, LogOut, Tag, TrendingUp, Monitor, UserCheck,
-  Wifi, WifiOff, Settings,
+  Wifi, WifiOff, Settings, CalendarDays,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSocketStore } from '../../store/socketStore';
@@ -12,19 +12,21 @@ import { useQuery } from '@tanstack/react-query';
 import { get } from '../../utils/api';
 import clsx from 'clsx';
 
+// roles: undefined = all, 'admin' = admin only, 'manager' = admin+manager
 const allNavItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: false },
-  { to: '/pos', icon: Monitor, label: 'Point of Sale', adminOnly: false },
-  { to: '/products', icon: Package, label: 'Products', adminOnly: false },
-  { to: '/categories', icon: Tag, label: 'Categories', adminOnly: true },
-  { to: '/inventory', icon: Warehouse, label: 'Inventory', adminOnly: false },
-  { to: '/alerts', icon: Bell, label: 'Alerts', badge: true, adminOnly: false },
-  { to: '/suppliers', icon: Truck, label: 'Suppliers', adminOnly: false },
-  { to: '/orders', icon: ShoppingCart, label: 'Purchase Orders', adminOnly: true },
-  { to: '/reports', icon: BarChart3, label: 'Reports', adminOnly: true },
-  { to: '/sales', icon: TrendingUp, label: 'Sales Report', adminOnly: true },
-  { to: '/workers', icon: UserCheck, label: 'Worker Monitor', adminOnly: true },
-  { to: '/settings', icon: Settings, label: 'Settings', adminOnly: true },
+  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard',        roles: undefined },
+  { to: '/pos',        icon: Monitor,         label: 'Point of Sale',    roles: undefined },
+  { to: '/products',   icon: Package,         label: 'Products',         roles: undefined },
+  { to: '/inventory',  icon: Warehouse,       label: 'Inventory',        roles: undefined },
+  { to: '/alerts',     icon: Bell,            label: 'Alerts',           badge: true, roles: undefined },
+  { to: '/suppliers',  icon: Truck,           label: 'Suppliers',        roles: undefined },
+  { to: '/day',        icon: CalendarDays,    label: 'Day Sessions',     roles: 'manager' as const },
+  { to: '/categories', icon: Tag,             label: 'Categories',       roles: 'admin' as const },
+  { to: '/orders',     icon: ShoppingCart,    label: 'Purchase Orders',  roles: 'admin' as const },
+  { to: '/reports',    icon: BarChart3,       label: 'Reports',          roles: 'admin' as const },
+  { to: '/sales',      icon: TrendingUp,      label: 'Sales Report',     roles: 'admin' as const },
+  { to: '/workers',    icon: UserCheck,       label: 'Worker Monitor',   roles: 'admin' as const },
+  { to: '/settings',   icon: Settings,        label: 'Settings',         roles: 'admin' as const },
 ];
 
 export function AppLayout() {
@@ -67,7 +69,13 @@ export function AppLayout() {
 
   const unresolvedCount = alertCount?.data?.count ?? 0;
   const isAdmin = user?.role === 'admin';
-  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
+  const isManager = user?.role === 'manager';
+  const navItems = allNavItems.filter(item => {
+    if (!item.roles) return true;
+    if (item.roles === 'admin') return isAdmin;
+    if (item.roles === 'manager') return isAdmin || isManager;
+    return false;
+  });
 
   const handleLogout = async () => {
     logout();

@@ -19,6 +19,7 @@ import { SalesReportPage } from './pages/sales/SalesReportPage';
 import { POSPage } from './pages/pos/POSPage';
 import { WorkerMonitorPage } from './pages/admin/WorkerMonitorPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
+import { DaySessionsPage } from './pages/day/DaySessionsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="sales" element={<SalesReportPage />} />
         <Route path="pos" element={<POSPage />} />
+        <Route path="day" element={<DaySessionsPage />} />
         <Route path="workers" element={<WorkerMonitorPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

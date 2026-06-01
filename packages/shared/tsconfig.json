@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
@@ -8,25 +7,7 @@
     "outDir": "dist",
     "declaration": true,
     "declarationMap": false,
-    "ignoreDeprecations": "6.0",
     "sourceMap": false
   },
   "include": ["src/**/*"]
-=======
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
->>>>>>> bf815c4 (No description)
 }

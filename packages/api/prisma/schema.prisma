@@ -18,16 +18,19 @@ model User {
   posBarCodeOnly Boolean     @default(false)
   createdAt    DateTime     @default(now())
 
-  stockEntries StockEntry[]
-  sessions     Session[]
-  activityLogs ActivityLog[]
-  cashierSales Sale[]        @relation("CashierSales")
+  stockEntries       StockEntry[]
+  sessions           Session[]
+  activityLogs       ActivityLog[]
+  cashierSales       Sale[]        @relation("CashierSales")
+  openedDaySessions  DaySession[]  @relation("DaySessionOpener")
+  closedDaySessions  DaySession[]  @relation("DaySessionCloser")
 
   @@map("users")
 }
 
 enum Role {
   admin
+  manager
   staff
 }
 
@@ -246,6 +249,30 @@ model SaleItem {
   createdAt  DateTime @default(now())
 
   @@map("sale_items")
+}
+
+// ─── Day Session ─────────────────────────────────────────────────────────────
+
+model DaySession {
+  id        String           @id @default(uuid())
+  date      String           // YYYY-MM-DD, one per calendar day
+  openedAt  DateTime         @default(now())
+  closedAt  DateTime?
+  openedBy  String
+  opener    User             @relation("DaySessionOpener", fields: [openedBy], references: [id])
+  closedBy  String?
+  closer    User?            @relation("DaySessionCloser", fields: [closedBy], references: [id])
+  notes     String?
+  status    DaySessionStatus @default(open)
+
+  @@unique([date])
+  @@index([status])
+  @@map("day_sessions")
+}
+
+enum DaySessionStatus {
+  open
+  closed
 }
 
 // ─── App Settings (singleton) ─────────────────────────────────────────────────
