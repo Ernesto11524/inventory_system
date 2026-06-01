@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:DATABASE_URL = \"postgresql://inventory_user:inventory_pass@127.0.0.1:5432/inventory_db\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\api\"; npx prisma migrate dev --name \"user_hidden_password_reset\" 2>&1)",
+      "PowerShell($env:DATABASE_URL = \"postgresql://inventory_user:inventory_pass@127.0.0.1:5432/inventory_db\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\api\"; $env:PRISMA_MIGRATE_SKIP_GENERATE = \"1\"; cmd /c \"npx prisma migrate dev --name user_hidden_password_reset\" 2>&1)",
+      "Bash(DATABASE_URL=\"postgresql://inventory_user:inventory_pass@127.0.0.1:5432/inventory_db\" npx prisma migrate dev --name user_hidden_password_reset)",
+      "Bash(DATABASE_URL=\"postgresql://inventory_user:inventory_pass@127.0.0.1:5432/inventory_db\" npx prisma migrate dev --name user_hidden_password_reset --create-only)",
+      "PowerShell($migDir = \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\api\\\\prisma\\\\migrations\\\\20260601120000_user_hidden_password_reset\"; New-Item -ItemType Directory -Path $migDir -Force | Out-Null; Write-Host \"Created $migDir\")",
+      "PowerShell($env:PGPASSWORD = \"inventory_pass\"; psql -h 127.0.0.1 -U inventory_user -d inventory_db -f \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\api\\\\prisma\\\\migrations\\\\20260601120000_user_hidden_password_reset\\\\migration.sql\" 2>&1)",
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python apply_migration2.py 2>&1)",
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python hide_system_admin.py 2>&1)",
+      "Bash(xargs rm -f)",
+      "Bash(node -e \"const path = require\\('path'\\); console.log\\(path.resolve\\('c:/Users/Ernest Mpiani/OneDrive/Documents/portfolio projects/inventory-system/apps/web', '../../packages/shared/src/index.ts'\\)\\);\")",
+      "PowerShell($link = Get-Item \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\node_modules\\\\@inventory\\\\shared\" -ErrorAction SilentlyContinue; if \\($link\\) { Write-Host \"Type: $\\($link.GetType\\(\\).Name\\)\"; if \\($link.Target\\) { Write-Host \"Target: $\\($link.Target\\)\" } else { Write-Host \"Not a symlink, checking package.json:\"; Get-Content \"$\\($link.FullName\\)\\\\package.json\" | Select-Object -First 10 } } else { Write-Host \"Not found in root node_modules\" })",
+      "Read(//c/Users/Ernest Mpiani/OneDrive/Documents/portfolio projects/inventory-system/node_modules/.pnpm/**)",
+      "PowerShell($item = Get-Item \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\apps\\\\web\\\\node_modules\\\\@inventory\\\\shared\"; $item.Target)",
+      "PowerShell(cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; pnpm --filter @inventory/shared build 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell($target = \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\shared\"; $link = \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\apps\\\\web\\\\node_modules\\\\@inventory\\\\shared\"; New-Item -ItemType Junction -Path $link -Target $target; Write-Host \"Junction recreated\"; \\(Get-Item $link\\).Target)",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\shared\\\\dist\" -Recurse | Select-Object Name, Directory | Where-Object {$_.Name -match \"index\"})",
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python full_deploy.py 2>&1)"
+    ]
+  }
+}

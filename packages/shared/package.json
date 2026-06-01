@@ -1,27 +1,17 @@
 {
   "name": "@inventory/shared",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-=======
-  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
->>>>>>> bf815c4 (No description)
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -18,8 +18,10 @@ import { CategoriesPage } from './pages/categories/CategoriesPage';
 import { SalesReportPage } from './pages/sales/SalesReportPage';
 import { POSPage } from './pages/pos/POSPage';
 import { WorkerMonitorPage } from './pages/admin/WorkerMonitorPage';
+import { WorkerSalesPage } from './pages/admin/WorkerSalesPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { DaySessionsPage } from './pages/day/DaySessionsPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -43,6 +45,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={
@@ -66,6 +69,7 @@ export default function App() {
         <Route path="pos" element={<POSPage />} />
         <Route path="day" element={<DaySessionsPage />} />
         <Route path="workers" element={<WorkerMonitorPage />} />
+        <Route path="workers/:userId/sales" element={<WorkerSalesPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

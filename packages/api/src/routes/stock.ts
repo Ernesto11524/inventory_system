@@ -78,6 +78,13 @@ stockRouter.post('/entry', validate(stockEntrySchema), async (req: Request, res:
     });
   }
 
+  await logActivity(
+    req.user!.userId,
+    `stock_${type}`,
+    `${type.charAt(0).toUpperCase() + type.slice(1)}: ${quantity}x ${product.name} (stock now ${inventory.currentStock})`,
+    req.ip,
+  );
+
   successResponse(res, entry, 'Stock entry created', 201);
 });
 

@@ -14,9 +14,12 @@ model User {
   name         String
   email        String       @unique
   password     String
-  role         Role         @default(staff)
-  posBarCodeOnly Boolean     @default(false)
-  createdAt    DateTime     @default(now())
+  role                Role     @default(staff)
+  posBarCodeOnly      Boolean  @default(false)
+  isHidden            Boolean  @default(false)
+  passwordResetToken  String?  @unique
+  passwordResetExpiry DateTime?
+  createdAt           DateTime @default(now())
 
   stockEntries       StockEntry[]
   sessions           Session[]

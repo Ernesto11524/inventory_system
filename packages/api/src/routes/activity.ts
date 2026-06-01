@@ -46,6 +46,7 @@ activityRouter.get('/workers', async (req: Request, res: Response) => {
   const toDate = to ? new Date(String(to) + 'T23:59:59') : new Date();
 
   const users = await prisma.user.findMany({
+    where: { isHidden: false },
     select: { id: true, name: true, email: true, role: true },
   });
 
