@@ -27,14 +27,16 @@ export function WorkerSalesPage() {
   });
 
   const salesData = salesRes?.data;
-  const sales: any[] = salesData?.items ?? salesData ?? [];
+  const sales: any[] = Array.isArray(salesData)
+    ? salesData
+    : (salesData?.items && Array.isArray(salesData.items) ? salesData.items : []);
   const workers: any[] = (workerRes?.data as any) ?? [];
   const worker = workers.find((w: any) => w.user.id === userId);
   const workerName = worker?.user?.name ?? 'Worker';
 
-  const totalRevenue = sales.reduce((s, sale) => s + sale.total, 0);
-  const totalItems = sales.reduce((s, sale) =>
-    s + sale.items.reduce((si: number, item: any) => si + item.quantity, 0), 0);
+  const totalRevenue = sales.reduce((s: number, sale: any) => s + (sale.total || 0), 0);
+  const totalItems = sales.reduce((s: number, sale: any) =>
+    s + (sale.items || []).reduce((si: number, item: any) => si + (item.quantity || 0), 0), 0);
 
   return (
     <div className="animate-fade-in">
