@@ -22,6 +22,7 @@ import { activityRouter } from './routes/activity';
 import { salesRouter } from './routes/sales';
 import { settingsRouter } from './routes/settings';
 import { daySessionsRouter } from './routes/daySessions';
+import { permissionsRouter } from './routes/permissions';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
@@ -92,6 +93,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/permissions', permissionsRouter);
 app.use('/api/activity', activityRouter);
 app.use('/api/sales', salesRouter);
 app.use('/api/products', productsRouter);

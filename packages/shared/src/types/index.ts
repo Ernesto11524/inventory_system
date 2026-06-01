@@ -8,6 +8,38 @@ export type PurchaseOrderStatus = 'draft' | 'sent' | 'received';
 
 export type AlertType = 'low_stock' | 'out_of_stock';
 
+// ─── Permissions ──────────────────────────────────────────────────────────────
+
+export interface UserPermissions {
+  sales: {
+    makeSales: boolean;
+    viewOwnSales: boolean;
+    viewAllReports: boolean;
+  };
+  inventory: {
+    addStock: boolean;
+    removeStock: boolean;
+    viewInventory: boolean;
+  };
+  daySessions: {
+    openClose: boolean;
+    viewSessions: boolean;
+  };
+  products: {
+    create: boolean;
+    edit: boolean;
+    delete: boolean;
+    view: boolean;
+  };
+  monitoring: {
+    viewWorkerActivity: boolean;
+    viewSalesReports: boolean;
+  };
+  users: {
+    manageOthers: boolean;
+  };
+}
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 export interface User {

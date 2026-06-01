@@ -17,7 +17,9 @@
       "PowerShell(cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; pnpm --filter @inventory/shared build 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
       "PowerShell($target = \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\shared\"; $link = \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\apps\\\\web\\\\node_modules\\\\@inventory\\\\shared\"; New-Item -ItemType Junction -Path $link -Target $target; Write-Host \"Junction recreated\"; \\(Get-Item $link\\).Target)",
       "PowerShell(Get-ChildItem \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\\\\packages\\\\shared\\\\dist\" -Recurse | Select-Object Name, Directory | Where-Object {$_.Name -match \"index\"})",
-      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python full_deploy.py 2>&1)"
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python full_deploy.py 2>&1)",
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python check_api_error.py 2>&1)",
+      "PowerShell($env:SSH_PASS = \"Berniceant@12\"; $env:PYTHONIOENCODING = \"utf-8\"; cd \"c:\\\\Users\\\\Ernest Mpiani\\\\OneDrive\\\\Documents\\\\portfolio projects\\\\inventory-system\"; python regenerate_prisma.py 2>&1)"
     ]
   }
 }

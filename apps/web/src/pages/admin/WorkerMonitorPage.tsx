@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import {
   Users, Clock, LogIn, ShoppingCart,
-  Activity, UserPlus, Eye, EyeOff, Trash2, KeyRound, TrendingUp,
+  Activity, UserPlus, Eye, EyeOff, Trash2, KeyRound, TrendingUp, Settings,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { get, patch, post, del } from '../../utils/api';
 import { PageHeader, LoadingSpinner, Modal } from '../../components/ui/index';
+import { PermissionsModal } from '../../components/ui/PermissionsModal';
 import clsx from 'clsx';
 
 function StatBadge({ value, label, color }: { value: number; label: string; color: string }) {
@@ -20,11 +21,12 @@ function StatBadge({ value, label, color }: { value: number; label: string; colo
   );
 }
 
-function WorkerCard({ worker, onViewActivity, onDelete, onChangePassword }: {
+function WorkerCard({ worker, onViewActivity, onDelete, onChangePassword, onManagePermissions }: {
   worker: any;
   onViewActivity: (w: any) => void;
   onDelete: (w: any) => void;
   onChangePassword: (w: any) => void;
+  onManagePermissions: (w: any) => void;
 }) {
   const navigate = useNavigate();
   const isOnline = worker.lastSeen && new Date(worker.lastSeen) > new Date(Date.now() - 30 * 60 * 1000);
@@ -96,6 +98,9 @@ function WorkerCard({ worker, onViewActivity, onDelete, onChangePassword }: {
         </button>
         <button onClick={() => onChangePassword(worker)} className="btn-secondary btn-sm gap-1 text-xs">
           <KeyRound size={11} /> Set Password
+        </button>
+        <button onClick={() => onManagePermissions(worker)} className="btn-secondary btn-sm gap-1 text-xs text-brand-600">
+          <Settings size={11} /> Permissions
         </button>
         <button
           onClick={() => onDelete(worker)}
@@ -339,6 +344,7 @@ export function WorkerMonitorPage() {
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
   const [workerToDelete, setWorkerToDelete] = useState<any>(null);
   const [workerToChangePass, setWorkerToChangePass] = useState<any>(null);
+  const [workerToManagePerms, setWorkerToManagePerms] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['workers', date],
@@ -401,6 +407,7 @@ export function WorkerMonitorPage() {
               onViewActivity={setSelectedWorker}
               onDelete={setWorkerToDelete}
               onChangePassword={setWorkerToChangePass}
+              onManagePermissions={setWorkerToManagePerms}
             />
           ))}
         </div>
@@ -421,6 +428,14 @@ export function WorkerMonitorPage() {
       <Modal isOpen={!!workerToDelete} onClose={() => setWorkerToDelete(null)} title="Delete User">
         {workerToDelete && <DeleteUserModal worker={workerToDelete} onClose={() => setWorkerToDelete(null)} />}
       </Modal>
+
+      <PermissionsModal
+        userId={workerToManagePerms?.user.id || ''}
+        userName={workerToManagePerms?.user.name || ''}
+        isOpen={!!workerToManagePerms}
+        onClose={() => setWorkerToManagePerms(null)}
+        onSuccess={() => { setWorkerToManagePerms(null); }}
+      />
     </div>
   );
 }
