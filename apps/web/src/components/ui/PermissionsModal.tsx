@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Toggle2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { get, patch } from '../../utils/api';
 import type { UserPermissions } from '@inventory/shared';
@@ -15,32 +15,47 @@ interface PermissionsModalProps {
 
 export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess }: PermissionsModalProps) {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['permissions', userId],
     queryFn: async () => {
-      const response = await get<any>(`/permissions/${userId}`);
-      return response;
+      try {
+        const response = await get<{ user: any; permissions: UserPermissions }>(`/permissions/${userId}`);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load permissions');
+        }
+        return response.data;
+      } catch (err: any) {
+        throw err;
+      }
     },
     enabled: isOpen && !!userId,
+    retry: 1,
   });
 
   useEffect(() => {
     if (data?.permissions) {
       setPermissions(data.permissions);
-    } else if (data?.data?.permissions) {
-      setPermissions(data.data.permissions);
+      setError(null);
     }
   }, [data]);
 
   const mutation = useMutation({
-    mutationFn: () => patch(`/permissions/${userId}`, { permissions }),
+    mutationFn: () => {
+      if (!permissions) throw new Error('No permissions data');
+      return patch(`/permissions/${userId}`, { permissions });
+    },
     onSuccess: () => {
       toast.success(`Permissions updated for ${userName}`);
       onSuccess?.();
       onClose();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update permissions'),
+    onError: (err: any) => {
+      const message = err.response?.data?.message || err.message || 'Failed to update permissions';
+      toast.error(message);
+      setError(message);
+    },
   });
 
   if (!isOpen) return null;
@@ -55,11 +70,11 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
     );
   }
 
-  if (error || !permissions) {
+  if (!permissions || error) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <p className="text-red-600 mb-4">{error ? 'Failed to load permissions' : 'No permissions data'}</p>
+          <p className="text-red-600 mb-4">{error || 'Failed to load permissions'}</p>
           <button onClick={onClose} className="btn-secondary">Close</button>
         </div>
       </div>
