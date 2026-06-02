@@ -8,7 +8,8 @@ activityRouter.use(authenticate);
 activityRouter.use(requireManagerOrAdmin);
 
 // GET /api/activity - Get all activity logs (admin only)
-activityRouter.get('/', async (req: Request, res: Response) => {
+activityRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 50, userId, action, from, to } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -37,10 +38,14 @@ activityRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, logs, 'Activity logs retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/activity/workers - Worker login summary
-activityRouter.get('/workers', async (req: Request, res: Response) => {
+activityRouter.get('/workers', async (req: Request, res: Response, next) => {
+  try {
   const { from, to } = req.query;
   const fromDate = from ? new Date(String(from)) : new Date(new Date().setHours(0,0,0,0));
   const toDate = to ? new Date(String(to) + 'T23:59:59') : new Date();
@@ -76,10 +81,14 @@ activityRouter.get('/workers', async (req: Request, res: Response) => {
   }));
 
   successResponse(res, workerStats, 'Worker activity retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/activity/users/:userId - Specific user activity
-activityRouter.get('/users/:userId', async (req: Request, res: Response) => {
+activityRouter.get('/users/:userId', async (req: Request, res: Response, next) => {
+  try {
   const { userId } = req.params;
   const { from, to, page = 1, limit = 50 } = req.query;
   const pageNum = Number(page);
@@ -107,4 +116,7 @@ activityRouter.get('/users/:userId', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, logs, 'User activity retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });

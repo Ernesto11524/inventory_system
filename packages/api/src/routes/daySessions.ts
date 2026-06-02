@@ -9,7 +9,8 @@ daySessionsRouter.use(authenticate);
 daySessionsRouter.use(requireManagerOrAdmin);
 
 // GET /api/day-sessions/today
-daySessionsRouter.get('/today', async (_req: Request, res: Response) => {
+daySessionsRouter.get('/today', async (_req: Request, res: Response, next) => {
+  try {
   const today = format(new Date(), 'yyyy-MM-dd');
   const session = await prisma.daySession.findUnique({
     where: { date: today },
@@ -19,10 +20,14 @@ daySessionsRouter.get('/today', async (_req: Request, res: Response) => {
     },
   });
   successResponse(res, session, session ? 'Today\'s session retrieved' : 'No session open today');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/day-sessions — list all sessions (paged)
-daySessionsRouter.get('/', async (req: Request, res: Response) => {
+daySessionsRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 30 } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -42,10 +47,14 @@ daySessionsRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, sessions, 'Day sessions retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/day-sessions/:id — single session with activity
-daySessionsRouter.get('/:id', async (req: Request, res: Response) => {
+daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
   const { id } = req.params;
   const session = await prisma.daySession.findUnique({
     where: { id },
@@ -81,10 +90,14 @@ daySessionsRouter.get('/:id', async (req: Request, res: Response) => {
       totalActions: activityLogs.length,
     },
   }, 'Day session retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/day-sessions — open today
-daySessionsRouter.post('/', async (req: Request, res: Response) => {
+daySessionsRouter.post('/', async (req: Request, res: Response, next) => {
+  try {
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const existing = await prisma.daySession.findUnique({ where: { date: today } });
@@ -103,10 +116,14 @@ daySessionsRouter.post('/', async (req: Request, res: Response) => {
   });
 
   successResponse(res, session, 'Day session opened', 201);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // PATCH /api/day-sessions/:id/close — close a session
-daySessionsRouter.patch('/:id/close', async (req: Request, res: Response) => {
+daySessionsRouter.patch('/:id/close', async (req: Request, res: Response, next) => {
+  try {
   const { id } = req.params;
 
   const session = await prisma.daySession.findUnique({ where: { id } });
@@ -128,4 +145,7 @@ daySessionsRouter.patch('/:id/close', async (req: Request, res: Response) => {
   });
 
   successResponse(res, updated, 'Day session closed');
+  } catch (err) {
+    next(err);
+  }
 });

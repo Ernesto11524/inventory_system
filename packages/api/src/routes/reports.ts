@@ -10,7 +10,8 @@ reportsRouter.use(authenticate);
 /**
  * GET /api/reports/stock-value
  */
-reportsRouter.get('/stock-value', async (_req: Request, res: Response) => {
+reportsRouter.get('/stock-value', async (_req: Request, res: Response, next) => {
+  try {
   const data = await prisma.$queryRaw<any[]>`
     SELECT
       p.id,
@@ -36,12 +37,16 @@ reportsRouter.get('/stock-value', async (_req: Request, res: Response) => {
   }), { totalCostValue: 0, totalRetailValue: 0, totalItems: 0 });
 
   successResponse(res, { products: data, totals }, 'Stock value report retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/reports/movement
  */
-reportsRouter.get('/movement', async (req: Request, res: Response) => {
+reportsRouter.get('/movement', async (req: Request, res: Response, next) => {
+  try {
   const { from, to, productId, type, page = 1, limit = 20 } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -72,13 +77,17 @@ reportsRouter.get('/movement', async (req: Request, res: Response) => {
     page: pageNum, limit: limitNum, total,
     totalPages: Math.ceil(total / limitNum),
   });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/reports/dashboard
  * 30-day stock movement chart data
  */
-reportsRouter.get('/dashboard', async (_req: Request, res: Response) => {
+reportsRouter.get('/dashboard', async (_req: Request, res: Response, next) => {
+  try {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -126,12 +135,16 @@ reportsRouter.get('/dashboard', async (_req: Request, res: Response) => {
     topByValue,
     categoryBreakdown,
   }, 'Dashboard data retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/reports/export/csv
  */
-reportsRouter.get('/export/csv', async (req: Request, res: Response) => {
+reportsRouter.get('/export/csv', async (req: Request, res: Response, next) => {
+  try {
   const { type = 'inventory', from, to } = req.query;
 
   let rows: any[] = [];
@@ -218,13 +231,17 @@ reportsRouter.get('/export/csv', async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(csv);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/reports/sales
  * Sales report with revenue, cost, profit breakdown
  */
-reportsRouter.get('/sales', async (req: Request, res: Response) => {
+reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
+  try {
   const { from, to } = req.query;
 
   const where: any = {
@@ -322,4 +339,7 @@ reportsRouter.get('/sales', async (req: Request, res: Response) => {
     dailyBreakdown,
     transactions: entries,
   }, 'Sales report retrieved');
+  } catch (err) {
+    next(err);
+  }
 });

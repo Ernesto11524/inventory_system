@@ -12,7 +12,8 @@ inventoryRouter.use(authenticate);
  * GET /api/inventory
  * All products with current stock levels
  */
-inventoryRouter.get('/', async (req: Request, res: Response) => {
+inventoryRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 20, search, categoryId } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -45,13 +46,17 @@ inventoryRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, inventory, 'Inventory retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/inventory/low-stock
  * Products with stock below minimum level
  */
-inventoryRouter.get('/low-stock', async (req: Request, res: Response) => {
+inventoryRouter.get('/low-stock', async (req: Request, res: Response, next) => {
+  try {
   const cached = await cacheGet(CACHE_KEYS.LOW_STOCK);
   if (cached) return successResponse(res, cached, 'Low stock items retrieved');
 
@@ -87,13 +92,17 @@ inventoryRouter.get('/low-stock', async (req: Request, res: Response) => {
 
   await cacheSet(CACHE_KEYS.LOW_STOCK, lowStock, CACHE_TTL.SHORT);
   successResponse(res, lowStock, 'Low stock items retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/inventory/summary
  * Aggregate stock statistics
  */
-inventoryRouter.get('/summary', async (req: Request, res: Response) => {
+inventoryRouter.get('/summary', async (req: Request, res: Response, next) => {
+  try {
   const summary = await prisma.$queryRaw<any[]>`
     SELECT
       COUNT(DISTINCT p.id)::int as "totalProducts",
@@ -106,4 +115,7 @@ inventoryRouter.get('/summary', async (req: Request, res: Response) => {
   `;
 
   successResponse(res, summary[0], 'Inventory summary retrieved');
+  } catch (err) {
+    next(err);
+  }
 });

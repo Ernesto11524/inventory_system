@@ -17,7 +17,8 @@ async function getOrCreate() {
  * Returns public settings for all authenticated users.
  * Admins also receive hasSecretKey indicator.
  */
-settingsRouter.get('/', async (req: Request, res: Response) => {
+settingsRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const settings = await getOrCreate();
   const { paystackSecretKey, ...pub } = settings;
 
@@ -26,13 +27,17 @@ settingsRouter.get('/', async (req: Request, res: Response) => {
     : pub;
 
   successResponse(res, payload, 'Settings retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * PATCH /api/settings
  * Admin-only. Updates store settings (upserts the singleton row).
  */
-settingsRouter.patch('/', requireAdmin, async (req: Request, res: Response) => {
+settingsRouter.patch('/', requireAdmin, async (req: Request, res: Response, next) => {
+  try {
   const allowed = [
     'storeName', 'storeTagline', 'storeLogo', 'storeEmail',
     'storePhone', 'storeAddress', 'currency', 'currencySymbol',
@@ -55,4 +60,7 @@ settingsRouter.patch('/', requireAdmin, async (req: Request, res: Response) => {
 
   const { paystackSecretKey, ...pub } = settings;
   successResponse(res, { ...pub, hasSecretKey: !!paystackSecretKey }, 'Settings updated');
+  } catch (err) {
+    next(err);
+  }
 });

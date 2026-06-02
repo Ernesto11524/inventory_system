@@ -8,7 +8,8 @@ import { supplierSchema } from '@inventory/shared';
 export const suppliersRouter = Router();
 suppliersRouter.use(authenticate);
 
-suppliersRouter.get('/', async (req: Request, res: Response) => {
+suppliersRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 20, search } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -27,28 +28,47 @@ suppliersRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, suppliers, 'Suppliers retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
-suppliersRouter.get('/:id', async (req: Request, res: Response) => {
+suppliersRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
   const supplier = await prisma.supplier.findUnique({
     where: { id: req.params.id },
     include: { purchaseOrders: { orderBy: { createdAt: 'desc' }, take: 10 } },
   });
   if (!supplier) throw new NotFoundError('Supplier');
   successResponse(res, supplier, 'Supplier retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
-suppliersRouter.post('/', requireAdmin, validate(supplierSchema), async (req: Request, res: Response) => {
+suppliersRouter.post('/', requireAdmin, validate(supplierSchema), async (req: Request, res: Response, next) => {
+  try {
   const supplier = await prisma.supplier.create({ data: req.body });
   successResponse(res, supplier, 'Supplier created', 201);
+  } catch (err) {
+    next(err);
+  }
 });
 
-suppliersRouter.put('/:id', requireAdmin, validate(supplierSchema.partial()), async (req: Request, res: Response) => {
+suppliersRouter.put('/:id', requireAdmin, validate(supplierSchema.partial()), async (req: Request, res: Response, next) => {
+  try {
   const supplier = await prisma.supplier.update({ where: { id: req.params.id }, data: req.body });
   successResponse(res, supplier, 'Supplier updated');
+  } catch (err) {
+    next(err);
+  }
 });
 
-suppliersRouter.delete('/:id', requireAdmin, async (req: Request, res: Response) => {
+suppliersRouter.delete('/:id', requireAdmin, async (req: Request, res: Response, next) => {
+  try {
   await prisma.supplier.delete({ where: { id: req.params.id } });
   successResponse(res, null, 'Supplier deleted');
+  } catch (err) {
+    next(err);
+  }
 });

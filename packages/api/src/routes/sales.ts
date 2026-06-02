@@ -11,7 +11,8 @@ export const salesRouter = Router();
 salesRouter.use(authenticate);
 
 // POST /api/sales - Create a new sale
-salesRouter.post('/', async (req: Request, res: Response) => {
+salesRouter.post('/', async (req: Request, res: Response, next) => {
+  try {
   const {
     items, customerName, customerPhone, paymentMethod,
     subtotal, discount, total, amountPaid, change, note,
@@ -92,10 +93,14 @@ salesRouter.post('/', async (req: Request, res: Response) => {
   }
 
   successResponse(res, sale, 'Sale completed', 201);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/sales - Get all sales
-salesRouter.get('/', async (req: Request, res: Response) => {
+salesRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 20, from, to, cashierId, paymentMethod } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -129,10 +134,14 @@ salesRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, sales, 'Sales retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/sales/:id - Get single sale
-salesRouter.get('/:id', async (req: Request, res: Response) => {
+salesRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
   const { id } = req.params;
   const sale = await prisma.sale.findUnique({
     where: { id },
@@ -145,10 +154,14 @@ salesRouter.get('/:id', async (req: Request, res: Response) => {
   });
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
   successResponse(res, sale, 'Sale retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/sales/summary/today - Today's summary
-salesRouter.get('/summary/today', async (req: Request, res: Response) => {
+salesRouter.get('/summary/today', async (req: Request, res: Response, next) => {
+  try {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -179,4 +192,7 @@ salesRouter.get('/summary/today', async (req: Request, res: Response) => {
     totalProfit,
     byPaymentMethod,
   }, 'Today summary retrieved');
+  } catch (err) {
+    next(err);
+  }
 });

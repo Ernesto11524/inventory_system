@@ -8,7 +8,8 @@ import { purchaseOrderSchema, poStatusSchema } from '@inventory/shared';
 export const purchaseOrdersRouter = Router();
 purchaseOrdersRouter.use(authenticate);
 
-purchaseOrdersRouter.get('/', async (req: Request, res: Response) => {
+purchaseOrdersRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
   const { page = 1, limit = 20, status, supplierId } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
@@ -36,9 +37,13 @@ purchaseOrdersRouter.get('/', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, orders, 'Purchase orders retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
-purchaseOrdersRouter.get('/:id', async (req: Request, res: Response) => {
+purchaseOrdersRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
   const order = await prisma.purchaseOrder.findUnique({
     where: { id: req.params.id },
     include: {
@@ -50,9 +55,13 @@ purchaseOrdersRouter.get('/:id', async (req: Request, res: Response) => {
   });
   if (!order) throw new NotFoundError('Purchase order');
   successResponse(res, order, 'Purchase order retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
-purchaseOrdersRouter.post('/', requireAdmin, validate(purchaseOrderSchema), async (req: Request, res: Response) => {
+purchaseOrdersRouter.post('/', requireAdmin, validate(purchaseOrderSchema), async (req: Request, res: Response, next) => {
+  try {
   const { supplierId, items, note } = req.body;
 
   const order = await prisma.purchaseOrder.create({
@@ -74,9 +83,13 @@ purchaseOrdersRouter.post('/', requireAdmin, validate(purchaseOrderSchema), asyn
   });
 
   successResponse(res, order, 'Purchase order created', 201);
+  } catch (err) {
+    next(err);
+  }
 });
 
-purchaseOrdersRouter.patch('/:id/status', requireAdmin, validate(poStatusSchema), async (req: Request, res: Response) => {
+purchaseOrdersRouter.patch('/:id/status', requireAdmin, validate(poStatusSchema), async (req: Request, res: Response, next) => {
+  try {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -131,4 +144,7 @@ purchaseOrdersRouter.patch('/:id/status', requireAdmin, validate(poStatusSchema)
   }
 
   successResponse(res, updatedOrder, `Purchase order marked as ${status}`);
+  } catch (err) {
+    next(err);
+  }
 });

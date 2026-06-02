@@ -17,7 +17,8 @@ stockRouter.use(authenticate);
  * POST /api/stock/entry
  * Create a new stock entry (immutable ledger)
  */
-stockRouter.post('/entry', validate(stockEntrySchema), async (req: Request, res: Response) => {
+stockRouter.post('/entry', validate(stockEntrySchema), async (req: Request, res: Response, next) => {
+  try {
   const { productId, quantity, type, note } = req.body;
 
   const product = await prisma.product.findFirst({
@@ -86,12 +87,16 @@ stockRouter.post('/entry', validate(stockEntrySchema), async (req: Request, res:
   );
 
   successResponse(res, entry, 'Stock entry created', 201);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/stock/history/:productId
  */
-stockRouter.get('/history/:productId', async (req: Request, res: Response) => {
+stockRouter.get('/history/:productId', async (req: Request, res: Response, next) => {
+  try {
   const { productId } = req.params;
   const { page = 1, limit = 20, type } = req.query;
   const pageNum = Number(page);
@@ -117,13 +122,17 @@ stockRouter.get('/history/:productId', async (req: Request, res: Response) => {
   ]);
 
   successResponse(res, entries, 'Stock history retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/stock/recent
  * Recent activity across all products
  */
-stockRouter.get('/recent', async (req: Request, res: Response) => {
+stockRouter.get('/recent', async (req: Request, res: Response, next) => {
+  try {
   const { limit = 20 } = req.query;
 
   const entries = await prisma.stockEntry.findMany({
@@ -136,4 +145,7 @@ stockRouter.get('/recent', async (req: Request, res: Response) => {
   });
 
   successResponse(res, entries, 'Recent activity retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
