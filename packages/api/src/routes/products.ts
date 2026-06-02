@@ -16,63 +16,75 @@ export const productsRouter = Router();
 productsRouter.use(authenticate);
 
 // GET /api/products
-productsRouter.get('/', async (req: Request, res: Response) => {
-  const { page = 1, limit = 20, search, categoryId } = req.query;
-  const pageNum = Number(page);
-  const limitNum = Math.min(Number(limit), 100);
-  const skip = (pageNum - 1) * limitNum;
+productsRouter.get('/', async (req: Request, res: Response, next) => {
+  try {
+    const { page = 1, limit = 20, search, categoryId } = req.query;
+    const pageNum = Number(page);
+    const limitNum = Math.min(Number(limit), 100);
+    const skip = (pageNum - 1) * limitNum;
 
-  const where: any = {
-    deletedAt: null,
-    ...(search ? {
-      OR: [
-        { name: { contains: String(search), mode: 'insensitive' } },
-        { sku: { contains: String(search), mode: 'insensitive' } },
-        { barcode: { contains: String(search), mode: 'insensitive' } },
-      ],
-    } : {}),
-    ...(categoryId ? { categoryId: String(categoryId) } : {}),
-  };
+    const where: any = {
+      deletedAt: null,
+      ...(search ? {
+        OR: [
+          { name: { contains: String(search), mode: 'insensitive' } },
+          { sku: { contains: String(search), mode: 'insensitive' } },
+          { barcode: { contains: String(search), mode: 'insensitive' } },
+        ],
+      } : {}),
+      ...(categoryId ? { categoryId: String(categoryId) } : {}),
+    };
 
-  const [products, total] = await prisma.$transaction([
-    prisma.product.findMany({
-      where,
-      include: { category: true, inventory: true },
-      skip,
-      take: limitNum,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.product.count({ where }),
-  ]);
+    const [products, total] = await prisma.$transaction([
+      prisma.product.findMany({
+        where,
+        include: { category: true, inventory: true },
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-  successResponse(res, products, 'Products retrieved', 200, buildPagination(pageNum, limitNum, total));
+    successResponse(res, products, 'Products retrieved', 200, buildPagination(pageNum, limitNum, total));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/products/barcode/:barcode
-productsRouter.get('/barcode/:barcode', async (req: Request, res: Response) => {
-  const { barcode } = req.params;
-  const product = await prisma.product.findFirst({
-    where: { barcode, deletedAt: null },
-    include: { category: true, inventory: true },
-  });
-  if (!product) throw new NotFoundError('Product');
-  successResponse(res, product, 'Product found');
+productsRouter.get('/barcode/:barcode', async (req: Request, res: Response, next) => {
+  try {
+    const { barcode } = req.params;
+    const product = await prisma.product.findFirst({
+      where: { barcode, deletedAt: null },
+      include: { category: true, inventory: true },
+    });
+    if (!product) throw new NotFoundError('Product');
+    successResponse(res, product, 'Product found');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/products/:id
-productsRouter.get('/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const cached = await cacheGet(CACHE_KEYS.PRODUCT(id));
-  if (cached) return successResponse(res, cached, 'Product retrieved');
+productsRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+    const cached = await cacheGet(CACHE_KEYS.PRODUCT(id));
+    if (cached) return successResponse(res, cached, 'Product retrieved');
 
-  const product = await prisma.product.findFirst({
-    where: { id, deletedAt: null },
-    include: { category: true, inventory: true },
-  });
-  if (!product) throw new NotFoundError('Product');
+    const product = await prisma.product.findFirst({
+      where: { id, deletedAt: null },
+      include: { category: true, inventory: true },
+    });
+    if (!product) throw new NotFoundError('Product');
 
-  await cacheSet(CACHE_KEYS.PRODUCT(id), product, CACHE_TTL.MEDIUM);
-  successResponse(res, product, 'Product retrieved');
+    await cacheSet(CACHE_KEYS.PRODUCT(id), product, CACHE_TTL.MEDIUM);
+    successResponse(res, product, 'Product retrieved');
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/products
