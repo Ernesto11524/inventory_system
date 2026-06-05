@@ -4,8 +4,6 @@ import { successResponse, buildPagination } from '../utils/response';
 import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 
 export const activityRouter = Router();
-activityRouter.use(authenticate);
-activityRouter.use(requireManagerOrAdmin);
 
 // GET /api/activity - Get all activity logs (admin only)
 activityRouter.get('/', async (req: Request, res: Response, next) => {

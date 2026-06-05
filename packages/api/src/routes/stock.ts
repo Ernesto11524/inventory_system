@@ -11,7 +11,6 @@ import { cacheDel } from '../utils/cache';
 import { CACHE_KEYS } from '@inventory/shared';
 
 export const stockRouter = Router();
-stockRouter.use(authenticate);
 
 /**
  * POST /api/stock/entry

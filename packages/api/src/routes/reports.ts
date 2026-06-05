@@ -5,7 +5,6 @@ import { successResponse } from '../utils/response';
 import { authenticate } from '../middleware/auth';
 
 export const reportsRouter = Router();
-reportsRouter.use(authenticate);
 
 /**
  * GET /api/reports/stock-value

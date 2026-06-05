@@ -5,7 +5,6 @@ import { successResponse, NotFoundError, buildPagination } from '../utils/respon
 import { authenticate, requireAdmin } from '../middleware/auth';
 
 export const usersRouter = Router();
-usersRouter.use(authenticate);
 
 // GET /api/users
 usersRouter.get('/', requireAdmin, async (req: Request, res: Response, next) => {

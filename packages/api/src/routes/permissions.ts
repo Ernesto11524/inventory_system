@@ -5,7 +5,6 @@ import { authenticate, requireAdmin } from '../middleware/auth';
 import type { UserPermissions } from '@inventory/shared';
 
 export const permissionsRouter = Router();
-permissionsRouter.use(authenticate, requireAdmin);
 
 permissionsRouter.get('/:userId', async (req: Request, res: Response, next) => {
   try {

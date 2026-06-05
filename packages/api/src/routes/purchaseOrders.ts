@@ -6,7 +6,6 @@ import { validate } from '../middleware/validate';
 import { purchaseOrderSchema, poStatusSchema } from '@inventory/shared';
 
 export const purchaseOrdersRouter = Router();
-purchaseOrdersRouter.use(authenticate);
 
 purchaseOrdersRouter.get('/', async (req: Request, res: Response, next) => {
   try {

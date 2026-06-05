@@ -6,7 +6,6 @@ import { validate } from '../middleware/validate';
 import { supplierSchema } from '@inventory/shared';
 
 export const suppliersRouter = Router();
-suppliersRouter.use(authenticate);
 
 suppliersRouter.get('/', async (req: Request, res: Response, next) => {
   try {

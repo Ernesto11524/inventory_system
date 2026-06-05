@@ -6,7 +6,6 @@ import { authenticate } from '../middleware/auth';
 import { emitAlertResolved } from '../services/socketService';
 
 export const alertsRouter = Router();
-alertsRouter.use(authenticate);
 
 alertsRouter.get('/', async (req: Request, res: Response, next) => {
   try {

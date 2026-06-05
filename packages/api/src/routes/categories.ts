@@ -6,7 +6,6 @@ import { validate } from '../middleware/validate';
 import { categorySchema } from '@inventory/shared';
 
 export const categoriesRouter = Router();
-categoriesRouter.use(authenticate);
 
 categoriesRouter.get('/', async (_req: Request, res: Response, next) => {
   try {

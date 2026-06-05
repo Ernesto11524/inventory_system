@@ -5,8 +5,6 @@ import { successResponse, buildPagination, NotFoundError, ConflictError } from '
 import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 
 export const daySessionsRouter = Router();
-daySessionsRouter.use(authenticate);
-daySessionsRouter.use(requireManagerOrAdmin);
 
 // GET /api/day-sessions/today
 daySessionsRouter.get('/today', async (_req: Request, res: Response, next) => {

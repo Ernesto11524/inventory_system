@@ -6,7 +6,6 @@ import { cacheGet, cacheSet } from '../utils/cache';
 import { CACHE_KEYS, CACHE_TTL } from '@inventory/shared';
 
 export const inventoryRouter = Router();
-inventoryRouter.use(authenticate);
 
 /**
  * GET /api/inventory

@@ -10,7 +10,6 @@ import { cacheDel } from '../utils/cache';
 import { format } from 'date-fns';
 
 export const salesRouter = Router();
-salesRouter.use(authenticate);
 
 // POST /api/sales - Create a new sale
 salesRouter.post('/', async (req: Request, res: Response, next) => {
