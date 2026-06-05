@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma/client';
-import { successResponse, buildPagination } from '../utils/response';
+import { successResponse, buildPagination, ConflictError } from '../utils/response';
 import { authenticate } from '../middleware/auth';
 import { logActivity } from '../utils/activityLog';
 import { io } from '../index';
 import { emitStockUpdate } from '../services/socketService';
-import { SOCKET_EVENTS } from '@inventory/shared';
+import { SOCKET_EVENTS, CACHE_KEYS } from '@inventory/shared';
+import { cacheDel } from '../utils/cache';
+import { format } from 'date-fns';
 
 export const salesRouter = Router();
 salesRouter.use(authenticate);
@@ -13,86 +15,126 @@ salesRouter.use(authenticate);
 // POST /api/sales - Create a new sale
 salesRouter.post('/', async (req: Request, res: Response, next) => {
   try {
-  const {
-    items, customerName, customerPhone, paymentMethod,
-    subtotal, discount, total, amountPaid, change, note,
-  } = req.body;
+    const {
+      items, customerName, customerPhone, paymentMethod,
+      subtotal, discount, total, amountPaid, change, note,
+    } = req.body;
 
-  if (!items || items.length === 0) {
-    return res.status(400).json({ message: 'No items in sale' });
-  }
-
-  // Generate receipt number
-  const receiptNo = `RCP-${Date.now().toString(36).toUpperCase()}`;
-
-  // Create sale and stock entries in a transaction
-  const sale = await prisma.$transaction(async (tx) => {
-    // Create the sale record
-    const newSale = await tx.sale.create({
-      data: {
-        receiptNo,
-        customerName: customerName || null,
-        customerPhone: customerPhone || null,
-        paymentMethod: paymentMethod || 'cash',
-        subtotal: Number(subtotal),
-        discount: Number(discount || 0),
-        total: Number(total),
-        amountPaid: Number(amountPaid || total),
-        change: Number(change || 0),
-        note: note || null,
-        cashierId: req.user!.userId,
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: Number(item.price),
-            costPrice: Number(item.costPrice || 0),
-            subtotal: item.quantity * Number(item.price),
-          })),
-        },
-      },
-      include: {
-        items: { include: { product: { select: { name: true, sku: true } } } },
-        cashier: { select: { name: true } },
-      },
-    });
-
-    // Create stock entries and update inventory for each item
-    for (const item of items) {
-      await tx.stockEntry.create({
-        data: {
-          productId: item.productId,
-          quantity: item.quantity,
-          type: 'sale',
-          note: `POS Sale - Receipt ${receiptNo}`,
-          performedBy: req.user!.userId,
-        },
-      });
-
-      await tx.inventory.upsert({
-        where: { productId: item.productId },
-        update: { currentStock: { decrement: item.quantity } },
-        create: { productId: item.productId, currentStock: -item.quantity },
-      });
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: 'No items in sale' });
     }
 
-    return newSale;
-  });
+    // Get today's date (UTC) and check for open day session
+    const today = new Date().toISOString().split('T')[0];
+    let daySession = await prisma.daySession.findUnique({
+      where: { date: today },
+    });
 
-  // Log activity
-  await logActivity(
-    req.user!.userId,
-    'stock_sale',
-    `POS Sale ${receiptNo} - ${items.length} items - Total: GH₵${total}`,
-    req.ip,
-  );
+    // Auto-create day session if it doesn't exist
+    if (!daySession) {
+      const admin = await prisma.user.findFirst({
+        where: { role: 'admin' },
+        orderBy: { createdAt: 'asc' },
+      });
 
-  // Emit real-time update
-  if (io) {
-    emitStockUpdate(io, { saleId: sale.id });
-  }
+      if (admin) {
+        daySession = await prisma.daySession.create({
+          data: {
+            date: today,
+            openedBy: admin.id,
+            status: 'open',
+            notes: '🤖 Auto-opened when first sale attempted',
+          },
+        });
+      } else {
+        throw new Error('Cannot create sale: no admin user found to open day session');
+      }
+    }
 
-  successResponse(res, sale, 'Sale completed', 201);
+    if (daySession.status !== 'open') {
+      throw new ConflictError('Today\'s day session is closed. Please reopen the session to continue making sales.');
+    }
+
+    // Generate receipt number
+    const receiptNo = `RCP-${Date.now().toString(36).toUpperCase()}`;
+
+    // Create sale and stock entries in a transaction
+    const sale = await prisma.$transaction(async (tx) => {
+      // Create the sale record
+      const newSale = await tx.sale.create({
+        data: {
+          receiptNo,
+          customerName: customerName || null,
+          customerPhone: customerPhone || null,
+          paymentMethod: paymentMethod || 'cash',
+          subtotal: Number(subtotal),
+          discount: Number(discount || 0),
+          total: Number(total),
+          amountPaid: Number(amountPaid || total),
+          change: Number(change || 0),
+          note: note || null,
+          daySessionId: daySession.id,
+          cashierId: req.user!.userId,
+          items: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: Number(item.price),
+              costPrice: Number(item.costPrice || 0),
+              subtotal: item.quantity * Number(item.price),
+            })),
+          },
+        },
+        include: {
+          items: { include: { product: { select: { name: true, sku: true } } } },
+          cashier: { select: { name: true } },
+          daySession: { select: { id: true, date: true } },
+        },
+      });
+
+      // Create stock entries and update inventory for each item
+      for (const item of items) {
+        await tx.stockEntry.create({
+          data: {
+            productId: item.productId,
+            quantity: item.quantity,
+            type: 'sale',
+            note: `POS Sale - Receipt ${receiptNo}`,
+            performedBy: req.user!.userId,
+          },
+        });
+
+        await tx.inventory.upsert({
+          where: { productId: item.productId },
+          update: { currentStock: { decrement: item.quantity } },
+          create: { productId: item.productId, currentStock: -item.quantity },
+        });
+      }
+
+      return newSale;
+    });
+
+    // Invalidate cache after successful sale
+    await Promise.all([
+      cacheDel(CACHE_KEYS.LOW_STOCK),
+      cacheDel(CACHE_KEYS.INVENTORY),
+      cacheDel(CACHE_KEYS.DASHBOARD_METRICS),
+    ]);
+
+    // Log activity
+    await logActivity(
+      req.user!.userId,
+      'stock_sale',
+      `POS Sale ${receiptNo} - ${items.length} items - Total: GH₵${total}`,
+      req.ip,
+    );
+
+    // Emit real-time update
+    if (io) {
+      emitStockUpdate(io, { saleId: sale.id });
+    }
+
+    successResponse(res, sale, 'Sale completed', 201);
   } catch (err) {
     next(err);
   }
@@ -142,18 +184,19 @@ salesRouter.get('/', async (req: Request, res: Response, next) => {
 // GET /api/sales/:id - Get single sale
 salesRouter.get('/:id', async (req: Request, res: Response, next) => {
   try {
-  const { id } = req.params;
-  const sale = await prisma.sale.findUnique({
-    where: { id },
-    include: {
-      items: {
-        include: { product: { select: { name: true, sku: true, unit: true, price: true } } },
+    const { id } = req.params;
+    const sale = await prisma.sale.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: { product: { select: { name: true, sku: true, unit: true, price: true } } },
+        },
+        cashier: { select: { id: true, name: true } },
+        daySession: { select: { id: true, date: true, status: true } },
       },
-      cashier: { select: { id: true, name: true } },
-    },
-  });
-  if (!sale) return res.status(404).json({ message: 'Sale not found' });
-  successResponse(res, sale, 'Sale retrieved');
+    });
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
+    successResponse(res, sale, 'Sale retrieved');
   } catch (err) {
     next(err);
   }

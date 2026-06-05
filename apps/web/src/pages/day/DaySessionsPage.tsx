@@ -76,6 +76,16 @@ function TodayPanel() {
     onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to close day'),
   });
 
+  const reopenMutation = useMutation({
+    mutationFn: () => patch(`/day-sessions/${session!.id}/reopen`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['day-session-today'] });
+      queryClient.invalidateQueries({ queryKey: ['day-sessions-list'] });
+      toast.success('Day reopened - continue working!');
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to reopen day'),
+  });
+
   const today = format(new Date(), 'EEEE, MMMM d yyyy');
 
   if (isLoading) return <LoadingSpinner className="h-40" />;
@@ -83,22 +93,14 @@ function TodayPanel() {
   if (!session) {
     return (
       <div className="card p-8 text-center border-2 border-dashed border-gray-200">
-        <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <PlayCircle size={32} className="text-brand-600" />
+        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Clock size={32} className="text-blue-600" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Not open yet</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Loading today's session...</h2>
         <p className="text-sm text-gray-500 mb-6">{today}</p>
-        <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
-          Click below to open today and start tracking all activity.
+        <p className="text-sm text-gray-500 max-w-xs mx-auto">
+          The day session will open automatically at midnight. Please refresh if needed.
         </p>
-        <button
-          onClick={() => openMutation.mutate()}
-          disabled={openMutation.isPending}
-          className="btn-primary px-8"
-        >
-          <PlayCircle size={16} />
-          {openMutation.isPending ? 'Opening…' : 'Open for Today'}
-        </button>
       </div>
     );
   }
@@ -121,25 +123,37 @@ function TodayPanel() {
               <span className="text-sm text-gray-500 font-medium">{today}</span>
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              Opened at {format(parseISO(session.openedAt), 'hh:mm a')} by {session.opener?.name}
+              Opened at {format(parseISO(session.openedAt), 'hh:mm a')} by {session.notes?.includes('🤖') ? 'System (Auto-opened)' : session.opener?.name}
               {session.closedAt && (
                 <> · Closed at {format(parseISO(session.closedAt), 'hh:mm a')} by {session.closer?.name}</>
               )}
             </p>
-            {session.notes && (
+            {session.notes && !session.notes.includes('🤖') && (
               <p className="text-sm text-gray-600 mt-2 italic">"{session.notes}"</p>
             )}
           </div>
 
-          {session.status === 'open' && (
-            <button
-              onClick={() => setShowCloseForm(!showCloseForm)}
-              className="btn-secondary btn-sm shrink-0"
-            >
-              <StopCircle size={14} className="text-red-500" />
-              Close Day
-            </button>
-          )}
+          <div className="flex gap-2">
+            {session.status === 'open' && (
+              <button
+                onClick={() => setShowCloseForm(!showCloseForm)}
+                className="btn-secondary btn-sm shrink-0"
+              >
+                <StopCircle size={14} className="text-red-500" />
+                Close Day
+              </button>
+            )}
+            {session.status === 'closed' && (
+              <button
+                onClick={() => reopenMutation.mutate()}
+                disabled={reopenMutation.isPending}
+                className="btn-primary btn-sm shrink-0"
+              >
+                <PlayCircle size={14} />
+                {reopenMutation.isPending ? 'Reopening…' : 'Reopen Day'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Close form */}

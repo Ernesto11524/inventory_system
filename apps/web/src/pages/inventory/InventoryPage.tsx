@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, AlertTriangle, Warehouse } from 'lucide-react';
 import { get } from '../../utils/api';
 import { LoadingSpinner, EmptyState, PageHeader, Pagination } from '../../components/ui/index';
+import { useAuthStore } from '../../store/authStore';
 import clsx from 'clsx';
 
 function StockBar({ current, min }: { current: number; min: number }) {
@@ -22,6 +23,8 @@ export function InventoryPage() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'all' | 'low'>('all');
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   const { data, isLoading } = useQuery({
     queryKey: ['inventory', page, search, tab],
@@ -90,44 +93,52 @@ export function InventoryPage() {
                   <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase">Current Stock</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase">Min Level</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500 text-xs uppercase">Level</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase">Stock Value</th>
+                  {isAdminOrManager && (
+                    <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase">Stock Value</th>
+                  )}
                   <th className="text-right py-3 px-4 font-medium text-gray-500 text-xs uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {items.map((item: any) => {
-                  const product = item.product || item;
                   const current = item.currentStock ?? 0;
-                  const min = product.minStockLevel ?? item.minStockLevel ?? 0;
+                  const min = item.minStockLevel ?? 0;
                   const isOut = current <= 0;
                   const isLow = !isOut && current < min;
-                  const costPrice = product.costPrice ?? item.costPrice ?? 0;
+                  const costPrice = item.costPrice ?? 0;
                   const stockValue = (current * Number(costPrice)).toFixed(2);
+                  const productName = item.product?.name || item.productName || 'Unknown';
+                  const productSku = item.product?.sku || item.productSku || '—';
+                  const categoryName = item.product?.category?.name || item.categoryName || '—';
+                  const unit = item.product?.unit || item.unit || 'pcs';
+                  const productId = item.product?.id || item.productId || item.id;
 
                   return (
                     <tr
                       key={item.id}
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/products/${item.productId || product.id}`)}
+                      onClick={() => navigate(`/products/${productId}`)}
                     >
                       <td className="py-3 px-4">
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-xs text-gray-400 font-mono">{product.sku}</p>
+                        <p className="font-medium text-gray-900">{productName}</p>
+                        <p className="text-xs text-gray-400 font-mono">{productSku}</p>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-xs text-gray-500">{product.category?.name || item.categoryName || '—'}</span>
+                        <span className="text-xs text-gray-500">{categoryName}</span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold">
                         <span className={isOut ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-gray-900'}>
                           {current}
                         </span>
-                        <span className="text-xs text-gray-400 ml-1">{product.unit || 'pcs'}</span>
+                        <span className="text-xs text-gray-400 ml-1">{unit}</span>
                       </td>
                       <td className="py-3 px-4 text-right text-gray-500 font-mono text-xs">{min}</td>
                       <td className="py-3 px-4">
                         <StockBar current={current} min={min} />
                       </td>
-                      <td className="py-3 px-4 text-right text-xs text-gray-600 font-mono">GH₵{stockValue}</td>
+                      {isAdminOrManager && (
+                        <td className="py-3 px-4 text-right text-xs text-gray-600 font-mono">GH₵{stockValue}</td>
+                      )}
                       <td className="py-3 px-4 text-right">
                         {isOut ? (
                           <span className="badge-red">Out of stock</span>

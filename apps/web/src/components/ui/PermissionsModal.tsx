@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { get, patch } from '../../utils/api';
@@ -16,6 +16,7 @@ interface PermissionsModalProps {
 export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess }: PermissionsModalProps) {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['permissions', userId],
@@ -46,7 +47,8 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
       if (!permissions) throw new Error('No permissions data');
       return patch(`/permissions/${userId}`, { permissions });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['permissions', userId] });
       toast.success(`Permissions updated for ${userName}`);
       onSuccess?.();
       onClose();

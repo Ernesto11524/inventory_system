@@ -220,23 +220,26 @@ model ActivityLog {
 }
 
 model Sale {
-  id             String       @id @default(uuid())
-  receiptNo      String       @unique
+  id             String        @id @default(uuid())
+  receiptNo      String        @unique
   customerId     String?
   customerName   String?
   customerPhone  String?
-  paymentMethod  String       @default("cash")
+  paymentMethod  String        @default("cash")
   subtotal       Float
-  discount       Float        @default(0)
+  discount       Float         @default(0)
   total          Float
-  amountPaid     Float        @default(0)
-  change         Float        @default(0)
+  amountPaid     Float         @default(0)
+  change         Float         @default(0)
   note           String?
+  daySessionId   String?
+  daySession     DaySession?   @relation(fields: [daySessionId], references: [id], onDelete: SetNull)
   cashierId      String
-  cashier        User         @relation("CashierSales", fields: [cashierId], references: [id])
+  cashier        User          @relation("CashierSales", fields: [cashierId], references: [id])
   items          SaleItem[]
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
 
+  @@index([daySessionId])
   @@map("sales")
 }
 
@@ -268,6 +271,7 @@ model DaySession {
   closer    User?            @relation("DaySessionCloser", fields: [closedBy], references: [id])
   notes     String?
   status    DaySessionStatus @default(open)
+  sales     Sale[]
 
   @@unique([date])
   @@index([status])

@@ -69,7 +69,7 @@ authRouter.post('/login', authLimiter, validate(loginSchema), async (req: Reques
     await logActivity(user.id, 'login', `Logged in from ${req.ip}`, req.ip);
 
     successResponse(res, {
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, permissions: user.permissions, createdAt: user.createdAt },
       tokens: { accessToken, refreshToken },
     }, 'Login successful');
   } catch (err) {

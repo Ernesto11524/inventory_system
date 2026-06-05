@@ -97,3 +97,45 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
 }
+
+/* Print media styles */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+
+  .fixed {
+    position: static !important;
+  }
+
+  .absolute {
+    position: relative !important;
+  }
+
+  .print\:max-h-none {
+    max-height: none !important;
+  }
+
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+
+  /* Hide non-printable elements */
+  button,
+  .no-print {
+    display: none !important;
+  }
+}

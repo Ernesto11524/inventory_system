@@ -118,6 +118,106 @@ function ProductCard({ product, onAdd }: {
 }
 
 function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=400,height=600');
+    if (!printWindow) return;
+
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Receipt ${sale.receiptNo}</title>
+        <style>
+          * { margin: 0; padding: 0; }
+          body { font-family: monospace; font-size: 12px; width: 80mm; }
+          .receipt { padding: 20px; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .receipt-no { font-weight: bold; margin: 5px 0; }
+          .date { font-size: 11px; color: #666; }
+          .customer { margin: 15px 0; padding: 10px; border: 1px dashed #ccc; }
+          .items { margin: 15px 0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; }
+          .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
+          .item-name { font-weight: bold; }
+          .item-qty { color: #666; font-size: 10px; }
+          .totals { margin-top: 15px; }
+          .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
+          .total-amount { font-weight: bold; font-size: 14px; }
+          .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
+          .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="header">
+            <div class="receipt-no">Receipt: ${sale.receiptNo}</div>
+            <div class="date">${format(new Date(sale.createdAt), 'MMM d, yyyy HH:mm')}</div>
+          </div>
+
+          ${sale.customerName ? `
+            <div class="customer">
+              <strong>${sale.customerName}</strong>
+              ${sale.customerPhone ? `<br/>${sale.customerPhone}` : ''}
+            </div>
+          ` : ''}
+
+          <div class="items">
+            ${sale.items.map((item: any) => `
+              <div class="item">
+                <div>
+                  <div class="item-name">${item.product?.name}</div>
+                  <div class="item-qty">${item.quantity} × GH₵${Number(item.unitPrice).toFixed(2)}</div>
+                </div>
+                <div class="item-amount"><strong>GH₵${Number(item.subtotal).toFixed(2)}</strong></div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="totals">
+            <div class="total-row">
+              <span>Subtotal</span>
+              <span>GH₵${Number(sale.subtotal).toFixed(2)}</span>
+            </div>
+            ${sale.discount > 0 ? `
+              <div class="total-row" style="color: green;">
+                <span>Discount</span>
+                <span>-GH₵${Number(sale.discount).toFixed(2)}</span>
+              </div>
+            ` : ''}
+            <div class="divider"></div>
+            <div class="total-row total-amount">
+              <span>TOTAL</span>
+              <span>GH₵${Number(sale.total).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span>Payment (${sale.paymentMethod === 'paystack' ? 'MoMo/Card/Bank' : sale.paymentMethod})</span>
+              <span>GH₵${Number(sale.amountPaid).toFixed(2)}</span>
+            </div>
+            ${sale.change > 0 ? `
+              <div class="total-row" style="color: green; font-weight: bold;">
+                <span>Change</span>
+                <span>GH₵${Number(sale.change).toFixed(2)}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="footer">
+            <p>Thank you for your purchase!</p>
+            <p style="margin-top: 10px;">StockFlow • Inventory System</p>
+          </div>
+        </div>
+        <script>
+          window.print();
+          window.addEventListener('afterprint', () => window.close());
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -180,7 +280,7 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
           <p className="text-center text-xs text-gray-400 mt-3">Thank you for your purchase!</p>
         </div>
         <div className="flex gap-2 px-6 pb-6">
-          <button onClick={() => window.print()} className="flex-1 btn-secondary">🖨️ Print</button>
+          <button onClick={handlePrint} className="flex-1 btn-secondary">🖨️ Print</button>
           <button onClick={onClose} className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700">
             New Sale
           </button>
@@ -363,7 +463,102 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex gap-2 px-6 pb-6">
               <button onClick={() => setReprinting(null)} className="flex-1 btn-secondary">Close</button>
-              <button onClick={() => window.print()} className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700 flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  const printWindow = window.open('', '', 'width=400,height=600');
+                  if (!printWindow) return;
+                  const receiptHTML = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <meta charset="UTF-8">
+                      <title>Receipt ${reprinting.receiptNo}</title>
+                      <style>
+                        * { margin: 0; padding: 0; }
+                        body { font-family: monospace; font-size: 12px; width: 80mm; }
+                        .receipt { padding: 20px; }
+                        .header { text-align: center; margin-bottom: 20px; }
+                        .receipt-no { font-weight: bold; margin: 5px 0; }
+                        .date { font-size: 11px; color: #666; }
+                        .customer { margin: 15px 0; padding: 10px; border: 1px dashed #ccc; }
+                        .items { margin: 15px 0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; }
+                        .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
+                        .item-name { font-weight: bold; }
+                        .item-qty { color: #666; font-size: 10px; }
+                        .totals { margin-top: 15px; }
+                        .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
+                        .total-amount { font-weight: bold; font-size: 14px; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
+                        .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="receipt">
+                        <div class="header">
+                          <div class="receipt-no">Receipt: ${reprinting.receiptNo}</div>
+                          <div class="date">${format(new Date(reprinting.createdAt), 'MMM d, yyyy HH:mm')}</div>
+                        </div>
+                        ${reprinting.customerName ? `
+                          <div class="customer">
+                            <strong>${reprinting.customerName}</strong>
+                            ${reprinting.customerPhone ? `<br/>${reprinting.customerPhone}` : ''}
+                          </div>
+                        ` : ''}
+                        <div class="items">
+                          ${reprinting.items.map((item: any) => `
+                            <div class="item">
+                              <div>
+                                <div class="item-name">${item.product?.name}</div>
+                                <div class="item-qty">${item.quantity} × GH₵${Number(item.unitPrice).toFixed(2)}</div>
+                              </div>
+                              <div class="item-amount"><strong>GH₵${Number(item.subtotal).toFixed(2)}</strong></div>
+                            </div>
+                          `).join('')}
+                        </div>
+                        <div class="totals">
+                          <div class="total-row">
+                            <span>Subtotal</span>
+                            <span>GH₵${Number(reprinting.subtotal).toFixed(2)}</span>
+                          </div>
+                          ${reprinting.discount > 0 ? `
+                            <div class="total-row" style="color: green;">
+                              <span>Discount</span>
+                              <span>-GH₵${Number(reprinting.discount).toFixed(2)}</span>
+                            </div>
+                          ` : ''}
+                          <div class="divider"></div>
+                          <div class="total-row total-amount">
+                            <span>TOTAL</span>
+                            <span>GH₵${Number(reprinting.total).toFixed(2)}</span>
+                          </div>
+                          <div class="total-row">
+                            <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'MoMo/Card/Bank' : reprinting.paymentMethod})</span>
+                            <span>GH₵${Number(reprinting.amountPaid).toFixed(2)}</span>
+                          </div>
+                          ${reprinting.change > 0 ? `
+                            <div class="total-row" style="color: green; font-weight: bold;">
+                              <span>Change</span>
+                              <span>GH₵${Number(reprinting.change).toFixed(2)}</span>
+                            </div>
+                          ` : ''}
+                        </div>
+                        <div class="footer">
+                          <p>Thank you for your purchase!</p>
+                          <p>Served by: ${reprinting.cashier?.name}</p>
+                          <p style="margin-top: 10px;">StockFlow • Inventory System</p>
+                        </div>
+                      </div>
+                      <script>
+                        window.print();
+                        window.addEventListener('afterprint', () => window.close());
+                      </script>
+                    </body>
+                    </html>
+                  `;
+                  printWindow.document.write(receiptHTML);
+                  printWindow.document.close();
+                }}
+                className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700 flex items-center justify-center gap-2">
                 <Printer size={14} /> Print
               </button>
             </div>
@@ -515,12 +710,9 @@ export function POSPage() {
         <div className="p-3 bg-white border-b border-gray-200 space-y-2 shrink-0">
           {summary && (
             <div className="flex gap-3 text-xs bg-brand-50 rounded-lg px-3 py-2 items-center">
-              <span className="text-brand-700 font-semibold">Today:</span>
-              <span className="text-green-700 font-bold">GH₵{Number(summary.totalRevenue || 0).toFixed(2)}</span>
-              <span className="text-gray-500">{summary.totalTransactions || 0} sales</span>
-              <span className="text-gray-500">{summary.totalItems || 0} items</span>
-              <button onClick={() => setShowHistory(true)} className="ml-auto text-brand-600 font-medium flex items-center gap-1">
-                <History size={11} /> History
+              <span className="text-brand-700 font-semibold">📅 Today's Sales</span>
+              <button onClick={() => setShowHistory(true)} className="ml-auto text-brand-600 font-medium flex items-center gap-1 hover:text-brand-700">
+                <History size={11} /> View History
               </button>
             </div>
           )}

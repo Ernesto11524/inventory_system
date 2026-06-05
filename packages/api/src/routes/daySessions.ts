@@ -55,41 +55,41 @@ daySessionsRouter.get('/', async (req: Request, res: Response, next) => {
 // GET /api/day-sessions/:id — single session with activity
 daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
   try {
-  const { id } = req.params;
-  const session = await prisma.daySession.findUnique({
-    where: { id },
-    include: {
-      opener: { select: { id: true, name: true } },
-      closer: { select: { id: true, name: true } },
-    },
-  });
-  if (!session) throw new NotFoundError('Day session');
+    const { id } = req.params;
+    const session = await prisma.daySession.findUnique({
+      where: { id },
+      include: {
+        opener: { select: { id: true, name: true } },
+        closer: { select: { id: true, name: true } },
+      },
+    });
+    if (!session) throw new NotFoundError('Day session');
 
-  const endTime = session.closedAt ?? new Date();
+    const endTime = session.closedAt ?? new Date();
 
-  const [activityLogs, salesSummary] = await prisma.$transaction([
-    prisma.activityLog.findMany({
-      where: { createdAt: { gte: session.openedAt, lte: endTime } },
-      include: { user: { select: { id: true, name: true, role: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    }),
-    prisma.sale.aggregate({
-      where: { createdAt: { gte: session.openedAt, lte: endTime } },
-      _sum: { total: true },
-      _count: { id: true },
-    }),
-  ]);
+    const [activityLogs, salesSummary] = await prisma.$transaction([
+      prisma.activityLog.findMany({
+        where: { createdAt: { gte: session.openedAt, lte: endTime } },
+        include: { user: { select: { id: true, name: true, role: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+      prisma.sale.aggregate({
+        where: { createdAt: { gte: session.openedAt, lte: endTime } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+    ]);
 
-  successResponse(res, {
-    session,
-    activityLogs,
-    summary: {
-      totalSales: salesSummary._count.id,
-      totalRevenue: salesSummary._sum.total ?? 0,
-      totalActions: activityLogs.length,
-    },
-  }, 'Day session retrieved');
+    successResponse(res, {
+      session,
+      activityLogs,
+      summary: {
+        totalSales: salesSummary._count.id,
+        totalRevenue: salesSummary._sum.total ?? 0,
+        totalActions: activityLogs.length,
+      },
+    }, 'Day session retrieved');
   } catch (err) {
     next(err);
   }
@@ -145,6 +145,40 @@ daySessionsRouter.patch('/:id/close', async (req: Request, res: Response, next) 
   });
 
   successResponse(res, updated, 'Day session closed');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/day-sessions/:id/reopen — reopen a closed session
+daySessionsRouter.patch('/:id/reopen', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+
+    const session = await prisma.daySession.findUnique({ where: { id } });
+    if (!session) throw new NotFoundError('Day session');
+    if (session.status === 'open') throw new ConflictError('Session is already open');
+
+    // Only allow reopening if it's today's session
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (session.date !== today) {
+      throw new ConflictError('Can only reopen today\'s session');
+    }
+
+    const updated = await prisma.daySession.update({
+      where: { id },
+      data: {
+        status: 'open',
+        closedAt: null,
+        closedBy: null,
+      },
+      include: {
+        opener: { select: { id: true, name: true } },
+        closer: { select: { id: true, name: true } },
+      },
+    });
+
+    successResponse(res, updated, 'Day session reopened - continue working!');
   } catch (err) {
     next(err);
   }
