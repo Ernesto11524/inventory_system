@@ -235,7 +235,8 @@ function DeleteUserModal({ worker, onClose }: { worker: any; onClose: () => void
   const mutation = useMutation({
     mutationFn: () => del(`/users/${worker.user.id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workers'] });
+      // Clear workers cache completely instead of invalidating to avoid IndexedDB caching issues
+      queryClient.removeQueries({ queryKey: ['workers'] });
       toast.success(`${worker.user.name} deleted`);
       onClose();
     },
