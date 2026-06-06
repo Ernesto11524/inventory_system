@@ -323,6 +323,11 @@ export function ProductsPage() {
     queryFn: () => get<any[]>("/categories"),
   });
 
+  const { data: allProductsData } = useQuery({
+    queryKey: ["products-all"],
+    queryFn: () => get<Product[]>("/products", { limit: 10000 }),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => del(`/products/${id}`),
     onSuccess: () => {
@@ -336,7 +341,8 @@ export function ProductsPage() {
   const cats = categories?.data || [];
 
   const exportToExcel = () => {
-    if (products.length === 0) {
+    const exportProducts = allProductsData?.data || [];
+    if (exportProducts.length === 0) {
       toast.error("No products to export");
       return;
     }
@@ -354,18 +360,24 @@ export function ProductsPage() {
       "Description",
     ];
 
-    const rows = products.map((p) => [
-      p.name,
-      p.sku,
-      p.barcode || "",
-      p.category?.name || "",
-      Number(p.price).toFixed(2),
-      Number(p.costPrice).toFixed(2),
-      p.unit,
-      p.minStockLevel,
-      p.inventory?.currentStock ?? "N/A",
-      p.description || "",
-    ]);
+    const rows = exportProducts.map((p) => {
+      // Force barcode to be treated as text by Excel
+      // Add apostrophe prefix which Excel interprets as "force text format"
+      const barcodeForced = p.barcode ? `'${p.barcode}` : "";
+
+      return [
+        p.name,
+        p.sku,
+        barcodeForced,
+        p.category?.name || "",
+        Number(p.price).toFixed(2),
+        Number(p.costPrice).toFixed(2),
+        p.unit,
+        p.minStockLevel,
+        p.inventory?.currentStock ?? "N/A",
+        p.description || "",
+      ];
+    });
 
     const csvContent = [
       headers.join(","),
@@ -373,15 +385,15 @@ export function ProductsPage() {
         row
           .map((cell) => {
             const str = String(cell);
-            return str.includes(",") || str.includes('"')
-              ? `"${str.replace(/"/g, '""')}"`
-              : str;
+            // Always quote cells to ensure proper escaping and text formatting
+            return `"${str.replace(/"/g, '""')}"`;
           })
           .join(",")
       ),
     ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    // Add UTF-8 BOM to ensure Excel reads special characters correctly
+    const blob = new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
@@ -390,7 +402,7 @@ export function ProductsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`Exported ${products.length} products`);
+    toast.success(`Exported ${exportProducts.length} products`);
   };
 
   return (
