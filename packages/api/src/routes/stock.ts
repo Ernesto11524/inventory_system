@@ -16,7 +16,7 @@ export const stockRouter = Router();
  * POST /api/stock/entry
  * Create a new stock entry (immutable ledger)
  */
-stockRouter.post('/entry', validate(stockEntrySchema), async (req: Request, res: Response, next) => {
+stockRouter.post('/entry', authenticate, validate(stockEntrySchema), async (req: Request, res: Response, next) => {
   try {
   const { productId, quantity, type, note } = req.body;
 
