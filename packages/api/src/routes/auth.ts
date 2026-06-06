@@ -53,7 +53,7 @@ authRouter.post('/login', authLimiter, validate(loginSchema), async (req: Reques
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedError('Invalid email or password');
 
-    const payload = { userId: user.id, email: user.email, role: user.role };
+    const payload = { userId: user.id, email: user.email, role: user.role, permissions: user.permissions as any };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
 
@@ -102,7 +102,7 @@ authRouter.post('/refresh', validate(refreshTokenSchema), async (req: Request, r
     }
 
     const { user } = session;
-    const payload = { userId: user.id, email: user.email, role: user.role };
+    const payload = { userId: user.id, email: user.email, role: user.role, permissions: user.permissions as any };
     const newAccessToken = signAccessToken(payload);
     const newRefreshToken = signRefreshToken(payload);
 
@@ -158,7 +158,7 @@ authRouter.get('/me', authenticate, async (req: Request, res: Response, next) =>
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, name: true, email: true, role: true, posBarCodeOnly: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, permissions: true, posBarCodeOnly: true, createdAt: true },
     });
     successResponse(res, user, 'User retrieved');
   } catch (err) {

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import prisma from '../prisma/client';
-import { successResponse, NotFoundError, ConflictError, buildPagination } from '../utils/response';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { successResponse, NotFoundError, ConflictError, ForbiddenError, buildPagination } from '../utils/response';
+import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { productSchema, productUpdateSchema, bulkImportRowSchema } from '@inventory/shared';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../utils/cache';
@@ -87,8 +87,12 @@ productsRouter.get('/:id', async (req: Request, res: Response, next) => {
 });
 
 // POST /api/products
-productsRouter.post('/', requireAdmin, async (req: Request, res: Response, next) => {
+productsRouter.post('/', authenticate, async (req: Request, res: Response, next) => {
   try {
+    if (!req.user?.permissions?.products?.create) {
+      throw new ForbiddenError('Permission denied: cannot create products');
+    }
+
     const data = productSchema.parse({
       ...req.body,
       price: Number(req.body.price),
@@ -119,8 +123,12 @@ productsRouter.post('/', requireAdmin, async (req: Request, res: Response, next)
 });
 
 // PUT /api/products/:id
-productsRouter.put('/:id', requireAdmin, async (req: Request, res: Response, next) => {
+productsRouter.put('/:id', authenticate, async (req: Request, res: Response, next) => {
   try {
+    if (!req.user?.permissions?.products?.edit) {
+      throw new ForbiddenError('Permission denied: cannot edit products');
+    }
+
     const { id } = req.params;
 
     const existing = await prisma.product.findFirst({ where: { id, deletedAt: null } });
@@ -148,8 +156,12 @@ productsRouter.put('/:id', requireAdmin, async (req: Request, res: Response, nex
 });
 
 // DELETE /api/products/:id (soft delete)
-productsRouter.delete('/:id', requireAdmin, async (req: Request, res: Response, next) => {
+productsRouter.delete('/:id', authenticate, async (req: Request, res: Response, next) => {
   try {
+    if (!req.user?.permissions?.products?.delete) {
+      throw new ForbiddenError('Permission denied: cannot delete products');
+    }
+
     const { id } = req.params;
 
     const product = await prisma.product.findFirst({ where: { id, deletedAt: null } });
@@ -166,8 +178,12 @@ productsRouter.delete('/:id', requireAdmin, async (req: Request, res: Response, 
 });
 
 // POST /api/products/bulk-import
-productsRouter.post('/bulk-import', requireAdmin, upload.single('file'), async (req: Request, res: Response, next) => {
+productsRouter.post('/bulk-import', authenticate, upload.single('file'), async (req: Request, res: Response, next) => {
   try {
+    if (!req.user?.permissions?.products?.create) {
+      throw new ForbiddenError('Permission denied: cannot import products');
+    }
+
     if (!req.file) throw new Error('CSV file is required');
 
     const content = req.file.buffer.toString('utf-8');

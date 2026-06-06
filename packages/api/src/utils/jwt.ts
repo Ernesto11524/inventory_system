@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
-import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from '@inventory/shared';
+import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY, type UserPermissions } from '@inventory/shared';
 
 export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  permissions?: UserPermissions;
 }
 
 export function signAccessToken(payload: JwtPayload): string {
