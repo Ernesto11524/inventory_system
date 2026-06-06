@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma/client';
 import { successResponse, NotFoundError, buildPagination } from '../utils/response';
-import { authenticate, requireAdmin } from '../middleware/auth';
 import type { UserPermissions } from '@inventory/shared';
 
 export const usersRouter = Router();
@@ -40,7 +39,7 @@ function getDefaultPermissions(role: string): UserPermissions {
 }
 
 // GET /api/users
-usersRouter.get('/', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.get('/', async (req: Request, res: Response, next) => {
   try {
     const { page = 1, limit = 50, includeHidden } = req.query;
     const pageNum = Number(page);
@@ -67,7 +66,7 @@ usersRouter.get('/', requireAdmin, async (req: Request, res: Response, next) => 
 });
 
 // POST /api/users  — create user
-usersRouter.post('/', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.post('/', async (req: Request, res: Response, next) => {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) throw new Error('Name, email and password are required');
@@ -95,7 +94,7 @@ usersRouter.post('/', requireAdmin, async (req: Request, res: Response, next) =>
 });
 
 // DELETE /api/users/:id
-usersRouter.delete('/:id', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.delete('/:id', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     if (id === req.user!.userId) throw new Error('Cannot delete your own account');
@@ -112,7 +111,7 @@ usersRouter.delete('/:id', requireAdmin, async (req: Request, res: Response, nex
 });
 
 // PATCH /api/users/:id/password  — admin resets a user's password
-usersRouter.patch('/:id/password', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.patch('/:id/password', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
@@ -131,7 +130,7 @@ usersRouter.patch('/:id/password', requireAdmin, async (req: Request, res: Respo
 });
 
 // PATCH /api/users/:id/visibility  — hide or show a user
-usersRouter.patch('/:id/visibility', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.patch('/:id/visibility', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     const { isHidden } = req.body;
@@ -152,7 +151,7 @@ usersRouter.patch('/:id/visibility', requireAdmin, async (req: Request, res: Res
 });
 
 // PATCH /api/users/:id/pos-settings
-usersRouter.patch('/:id/pos-settings', requireAdmin, async (req: Request, res: Response, next) => {
+usersRouter.patch('/:id/pos-settings', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     const { posBarCodeOnly } = req.body;
