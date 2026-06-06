@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 export const salesRouter = Router();
 
 // POST /api/sales - Create a new sale
-salesRouter.post('/', async (req: Request, res: Response, next) => {
+salesRouter.post('/', authenticate, async (req: Request, res: Response, next) => {
   try {
     const {
       items, customerName, customerPhone, paymentMethod,
@@ -73,7 +73,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
           change: Number(change || 0),
           note: note || null,
           daySessionId: daySession.id,
-          cashierId: req.user!.userId,
+          cashierId: req.user?.userId || '',
           items: {
             create: items.map((item: any) => ({
               productId: item.productId,
