@@ -21,11 +21,21 @@ const TYPE_ICONS: Record<string, any> = {
   adjustment: Wrench,
 };
 
-function StockEntryForm({ productId, onClose, isAdmin }: { productId: string; onClose: () => void; isAdmin: boolean }) {
+function StockEntryForm({
+  productId,
+  onClose,
+  canAddStock,
+  canRemoveStock
+}: {
+  productId: string;
+  onClose: () => void;
+  canAddStock: boolean;
+  canRemoveStock: boolean;
+}) {
   const queryClient = useQueryClient();
   const { register, handleSubmit, formState: { errors } } = useForm<Omit<StockEntryInput, 'productId'>>({
     resolver: zodResolver(stockEntrySchema.omit({ productId: true })),
-    defaultValues: { type: isAdmin ? 'restock' : 'sale', quantity: 1 },
+    defaultValues: { type: canAddStock ? 'restock' : 'sale', quantity: 1 },
   });
 
   const mutation = useMutation({
@@ -46,10 +56,10 @@ function StockEntryForm({ productId, onClose, isAdmin }: { productId: string; on
       <div>
         <label className="label">Entry Type *</label>
         <select {...register('type')} className="input">
-          {isAdmin && <option value="restock">Restock (add stock)</option>}
-          <option value="sale">Sale (remove stock)</option>
-          <option value="return">Return (add back)</option>
-          {isAdmin && <option value="adjustment">Adjustment</option>}
+          {canAddStock && <option value="restock">Restock (add stock)</option>}
+          {canRemoveStock && <option value="sale">Sale (remove stock)</option>}
+          {canAddStock && <option value="return">Return (add back)</option>}
+          {canAddStock && <option value="adjustment">Adjustment</option>}
         </select>
       </div>
       <div>
@@ -83,7 +93,9 @@ export function ProductDetailPage() {
   const [showStockForm, setShowStockForm] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
+
+  const canAddStock = user?.permissions?.inventory?.addStock ?? false;
+  const canRemoveStock = user?.permissions?.inventory?.removeStock ?? false;
 
   const { data: productData, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -131,12 +143,15 @@ export function ProductDetailPage() {
                   <span className="badge-blue mt-1 inline-flex">{product.category.name}</span>
                 )}
               </div>
-              <button
-                onClick={() => setShowStockForm(true)}
-                className="btn-primary btn-sm"
-              >
-                <PlusCircle size={14} /> {isAdmin ? 'Stock Entry' : 'Record Sale'}
-              </button>
+              {(canAddStock || canRemoveStock) && (
+                <button
+                  onClick={() => setShowStockForm(true)}
+                  className="btn-primary btn-sm"
+                  title={canAddStock ? 'Record stock entry' : 'Record sale'}
+                >
+                  <PlusCircle size={14} /> {canAddStock ? 'Stock Entry' : 'Record Sale'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -212,7 +227,7 @@ export function ProductDetailPage() {
       </div>
 
       <Modal isOpen={showStockForm} onClose={() => setShowStockForm(false)} title="Record Stock Entry">
-        <StockEntryForm productId={id!} onClose={() => setShowStockForm(false)} isAdmin={isAdmin} />
+        <StockEntryForm productId={id!} onClose={() => setShowStockForm(false)} canAddStock={canAddStock} canRemoveStock={canRemoveStock} />
       </Modal>
     </div>
   );
