@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma/client';
 import { successResponse, NotFoundError, buildPagination } from '../utils/response';
+import { authenticate } from '../middleware/auth';
 import type { UserPermissions } from '@inventory/shared';
 
 export const usersRouter = Router();
@@ -94,10 +95,11 @@ usersRouter.post('/', async (req: Request, res: Response, next) => {
 });
 
 // DELETE /api/users/:id
-usersRouter.delete('/:id', async (req: Request, res: Response, next) => {
+usersRouter.delete('/:id', authenticate, async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
-    if (id === req.user!.userId) throw new Error('Cannot delete your own account');
+    if (!req.user) throw new Error('Not authenticated');
+    if (id === req.user.userId) throw new Error('Cannot delete your own account');
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundError('User');
