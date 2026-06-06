@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Loader2,
   ScanLine,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
@@ -305,7 +306,11 @@ export function ProductsPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const isAdmin = user?.role === "admin";
+
+  const canCreate = user?.permissions?.products?.create ?? false;
+  const canEdit = user?.permissions?.products?.edit ?? false;
+  const canDelete = user?.permissions?.products?.delete ?? false;
+  const canView = user?.permissions?.products?.view ?? true;
 
   const { data, isLoading } = useQuery({
     queryKey: ["products", page, search, categoryId],
@@ -330,50 +335,117 @@ export function ProductsPage() {
   const pagination = data?.pagination;
   const cats = categories?.data || [];
 
+  const exportToExcel = () => {
+    if (products.length === 0) {
+      toast.error("No products to export");
+      return;
+    }
+
+    const headers = [
+      "Product Name",
+      "SKU",
+      "Barcode",
+      "Category",
+      "Selling Price",
+      "Cost Price",
+      "Unit",
+      "Min Stock Level",
+      "Current Stock",
+      "Description",
+    ];
+
+    const rows = products.map((p) => [
+      p.name,
+      p.sku,
+      p.barcode || "",
+      p.category?.name || "",
+      Number(p.price).toFixed(2),
+      Number(p.costPrice).toFixed(2),
+      p.unit,
+      p.minStockLevel,
+      p.inventory?.currentStock ?? "N/A",
+      p.description || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row
+          .map((cell) => {
+            const str = String(cell);
+            return str.includes(",") || str.includes('"')
+              ? `"${str.replace(/"/g, '""')}"`
+              : str;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `products-${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Exported ${products.length} products`);
+  };
+
   return (
     <div className="animate-fade-in">
       <PageHeader
         title="Products"
         subtitle={`${pagination?.total ?? "—"} total products`}
         actions={
-          isAdmin ? (
-            <div className="flex gap-2">
-              <label className="btn-secondary btn-sm cursor-pointer">
-                <Upload size={13} /> Import CSV
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const fd = new FormData();
-                    fd.append("file", file);
-                    try {
-                      const res = await postForm("/products/bulk-import", fd);
-                      toast.success(res.message);
-                      queryClient.invalidateQueries({ queryKey: ["products"] });
-                    } catch (err: any) {
-                      toast.error(
-                        err.response?.data?.message ||
-                          err.message ||
-                          "Import failed",
-                      );
-                    }
+          <div className="flex gap-2">
+            <button
+              onClick={exportToExcel}
+              className="btn-secondary btn-sm"
+              title="Export all products to CSV"
+            >
+              <Download size={13} /> Export
+            </button>
+            {canCreate && (
+              <>
+                <label className="btn-secondary btn-sm cursor-pointer">
+                  <Upload size={13} /> Import CSV
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const fd = new FormData();
+                      fd.append("file", file);
+                      try {
+                        const res = await postForm("/products/bulk-import", fd);
+                        toast.success(res.message);
+                        queryClient.invalidateQueries({ queryKey: ["products"] });
+                      } catch (err: any) {
+                        toast.error(
+                          err.response?.data?.message ||
+                            err.message ||
+                            "Import failed",
+                        );
+                      }
+                    }}
+                  />
+                </label>
+                <button
+                  onClick={() => {
+                    setEditProduct(null);
+                    setShowForm(true);
                   }}
-                />
-              </label>
-              <button
-                onClick={() => {
-                  setEditProduct(null);
-                  setShowForm(true);
-                }}
-                className="btn-primary btn-sm"
-              >
-                <Plus size={13} /> New Product
-              </button>
-            </div>
-          ) : undefined
+                  className="btn-primary btn-sm"
+                >
+                  <Plus size={13} /> New Product
+                </button>
+              </>
+            )}
+          </div>
         }
       />
 
@@ -421,7 +493,7 @@ export function ProductsPage() {
             icon="product"
             className="h-64"
             action={
-              isAdmin ? (
+              canCreate ? (
                 <button
                   onClick={() => setShowForm(true)}
                   className="btn-primary btn-sm"
@@ -511,27 +583,29 @@ export function ProductsPage() {
                         className="flex items-center justify-end gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditProduct(product);
-                                setShowForm(true);
-                              }}
-                              className="btn-ghost btn-sm p-1.5"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete "${product.name}"?`))
-                                  deleteMutation.mutate(product.id);
-                              }}
-                              className="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              setEditProduct(product);
+                              setShowForm(true);
+                            }}
+                            className="btn-ghost btn-sm p-1.5"
+                            title="Edit product"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete "${product.name}"?`))
+                                deleteMutation.mutate(product.id);
+                            }}
+                            className="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            title="Delete product"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         )}
                         <ChevronRight
                           size={14}
