@@ -323,11 +323,6 @@ export function ProductsPage() {
     queryFn: () => get<any[]>("/categories"),
   });
 
-  const { data: allProductsData } = useQuery({
-    queryKey: ["products-all"],
-    queryFn: () => get<Product[]>("/products", { limit: 10000 }),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => del(`/products/${id}`),
     onSuccess: () => {
@@ -340,69 +335,92 @@ export function ProductsPage() {
   const pagination = data?.pagination;
   const cats = categories?.data || [];
 
-  const exportToExcel = () => {
-    const exportProducts = allProductsData?.data || [];
-    if (exportProducts.length === 0) {
-      toast.error("No products to export");
-      return;
-    }
+  const exportToExcel = async () => {
+    const toastId = toast.loading("Fetching all products...");
+    try {
+      // Fetch first page to get total count
+      const firstPage = await get<Product[]>("/products", { page: 1, limit: 100 });
+      const total = firstPage.pagination?.total || 0;
+      const totalPages = Math.ceil(total / 100);
 
-    const headers = [
-      "Product Name",
-      "SKU",
-      "Barcode",
-      "Category",
-      "Selling Price",
-      "Cost Price",
-      "Unit",
-      "Min Stock Level",
-      "Current Stock",
-      "Description",
-    ];
+      if (total === 0) {
+        toast.error("No products to export", { id: toastId });
+        return;
+      }
 
-    const rows = exportProducts.map((p) => {
-      // Force barcode to be treated as text by Excel
-      // Add apostrophe prefix which Excel interprets as "force text format"
-      const barcodeForced = p.barcode ? `'${p.barcode}` : "";
+      // Fetch all pages
+      const allProducts: Product[] = firstPage.data || [];
 
-      return [
-        p.name,
-        p.sku,
-        barcodeForced,
-        p.category?.name || "",
-        Number(p.price).toFixed(2),
-        Number(p.costPrice).toFixed(2),
-        p.unit,
-        p.minStockLevel,
-        p.inventory?.currentStock ?? "N/A",
-        p.description || "",
+      if (totalPages > 1) {
+        toast.loading(`Fetching page 1 of ${totalPages}...`, { id: toastId });
+        for (let page = 2; page <= totalPages; page++) {
+          toast.loading(`Fetching page ${page} of ${totalPages}...`, { id: toastId });
+          const pageData = await get<Product[]>("/products", { page, limit: 100 });
+          allProducts.push(...(pageData.data || []));
+        }
+      }
+
+      toast.loading(`Generating CSV for ${allProducts.length} products...`, { id: toastId });
+
+      const headers = [
+        "Product Name",
+        "SKU",
+        "Barcode",
+        "Category",
+        "Selling Price",
+        "Cost Price",
+        "Unit",
+        "Min Stock Level",
+        "Current Stock",
+        "Description",
       ];
-    });
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row
-          .map((cell) => {
-            const str = String(cell);
-            // Always quote cells to ensure proper escaping and text formatting
-            return `"${str.replace(/"/g, '""')}"`;
-          })
-          .join(",")
-      ),
-    ].join("\n");
+      const rows = allProducts.map((p) => {
+        // Force barcode to be treated as text by Excel
+        const barcodeForced = p.barcode ? `'${p.barcode}` : "";
 
-    // Add UTF-8 BOM to ensure Excel reads special characters correctly
-    const blob = new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `products-${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Exported ${exportProducts.length} products`);
+        return [
+          p.name,
+          p.sku,
+          barcodeForced,
+          p.category?.name || "",
+          Number(p.price).toFixed(2),
+          Number(p.costPrice).toFixed(2),
+          p.unit,
+          p.minStockLevel,
+          p.inventory?.currentStock ?? "N/A",
+          p.description || "",
+        ];
+      });
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) =>
+          row
+            .map((cell) => {
+              const str = String(cell);
+              return `"${str.replace(/"/g, '""')}"`;
+            })
+            .join(",")
+        ),
+      ].join("\n");
+
+      // Add UTF-8 BOM
+      const blob = new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `products-backup-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`✓ Exported ${allProducts.length} products`, { id: toastId });
+    } catch (error: any) {
+      toast.error(error?.message || "Export failed", { id: toastId });
+    }
   };
 
   return (
