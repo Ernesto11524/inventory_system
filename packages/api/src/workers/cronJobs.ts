@@ -95,8 +95,8 @@ async function checkLowStock(): Promise<void> {
 async function autoOpenDaySession(): Promise<void> {
   console.log('[CRON] Attempting to auto-open day session...');
   try {
-    const today = new Date().toISOString().split('T')[0];
-    console.log(`[CRON] Calculated today's date (UTC): ${today}`);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    console.log(`[CRON] Calculated today's date: ${today}`);
 
     const existing = await prisma.daySession.findUnique({
       where: { date: today },
@@ -192,13 +192,12 @@ export function startCronJobs(): void {
 
   console.log('[CRON] Scheduled: low-stock-check (every hour)');
 
-  // Auto-open day session at midnight UTC
+  // Auto-open day session at midnight
   cron.schedule('0 0 * * *', autoOpenDaySession, {
     name: 'auto-open-day-session',
-    timezone: 'UTC',
   });
 
-  console.log('[CRON] Scheduled: auto-open-day-session (daily at 00:00 UTC)');
+  console.log('[CRON] Scheduled: auto-open-day-session (daily at 00:00 local time)');
 
   // Auto-close day session every 30 minutes
   cron.schedule('*/30 * * * *', autoCloseDaySession, {

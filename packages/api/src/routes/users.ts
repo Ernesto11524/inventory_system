@@ -3,8 +3,41 @@ import bcrypt from 'bcryptjs';
 import prisma from '../prisma/client';
 import { successResponse, NotFoundError, buildPagination } from '../utils/response';
 import { authenticate, requireAdmin } from '../middleware/auth';
+import type { UserPermissions } from '@inventory/shared';
 
 export const usersRouter = Router();
+
+function getDefaultPermissions(role: string): UserPermissions {
+  const basePermissions: UserPermissions = {
+    sales: { makeSales: true, viewOwnSales: true, viewAllReports: false },
+    inventory: { addStock: false, removeStock: false, viewInventory: true },
+    daySessions: { openClose: false, viewSessions: true },
+    products: { create: false, edit: false, delete: false, view: true },
+    monitoring: { viewWorkerActivity: false, viewSalesReports: false },
+    users: { manageOthers: false },
+  };
+
+  if (role === 'manager') {
+    return {
+      ...basePermissions,
+      inventory: { addStock: true, removeStock: true, viewInventory: true },
+      products: { ...basePermissions.products, create: true },
+    };
+  }
+
+  if (role === 'admin') {
+    return {
+      sales: { makeSales: true, viewOwnSales: true, viewAllReports: true },
+      inventory: { addStock: true, removeStock: true, viewInventory: true },
+      daySessions: { openClose: true, viewSessions: true },
+      products: { create: true, edit: true, delete: true, view: true },
+      monitoring: { viewWorkerActivity: true, viewSalesReports: true },
+      users: { manageOthers: true },
+    };
+  }
+
+  return basePermissions;
+}
 
 // GET /api/users
 usersRouter.get('/', requireAdmin, async (req: Request, res: Response, next) => {
@@ -42,9 +75,16 @@ usersRouter.post('/', requireAdmin, async (req: Request, res: Response, next) =>
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) throw new Error('Email already in use');
 
+    const userRole = role || 'staff';
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { name, email, password: hashed, role: role || 'staff' },
+      data: {
+        name,
+        email,
+        password: hashed,
+        role: userRole,
+        permissions: getDefaultPermissions(userRole) as any,
+      },
       select: { id: true, name: true, email: true, role: true, posBarCodeOnly: true, createdAt: true },
     });
 

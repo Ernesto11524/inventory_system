@@ -49,6 +49,7 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['permissions', userId] });
+      await queryClient.invalidateQueries({ queryKey: ['workers'] });
       toast.success(`Permissions updated for ${userName}`);
       onSuccess?.();
       onClose();
