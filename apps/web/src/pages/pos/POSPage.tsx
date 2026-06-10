@@ -118,6 +118,9 @@ function ProductCard({ product, onAdd }: {
 }
 
 function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
+  const { settings } = useSettingsStore();
+  const storeName = settings.storeName;
+
   const handlePrint = () => {
     const printWindow = window.open('', '', 'width=400,height=600');
     if (!printWindow) return;
@@ -133,6 +136,7 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
           body { font-family: monospace; font-size: 12px; width: 80mm; }
           .receipt { padding: 20px; }
           .header { text-align: center; margin-bottom: 20px; }
+          .store-name { font-weight: bold; font-size: 14px; margin-bottom: 8px; }
           .receipt-no { font-weight: bold; margin: 5px 0; }
           .date { font-size: 11px; color: #666; }
           .customer { margin: 15px 0; padding: 10px; border: 1px dashed #ccc; }
@@ -150,6 +154,7 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
       <body>
         <div class="receipt">
           <div class="header">
+            ${storeName ? `<div class="store-name">${storeName}</div>` : ''}
             <div class="receipt-no">Receipt: ${sale.receiptNo}</div>
             <div class="date">${format(new Date(sale.createdAt), 'MMM d, yyyy HH:mm')}</div>
           </div>
