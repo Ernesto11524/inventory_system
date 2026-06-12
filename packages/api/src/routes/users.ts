@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma/client';
 import { successResponse, NotFoundError, buildPagination } from '../utils/response';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireAdmin } from '../middleware/auth';
 import type { UserPermissions } from '@inventory/shared';
 
 export const usersRouter = Router();
