@@ -7,6 +7,8 @@ import { categorySchema } from '@inventory/shared';
 
 export const categoriesRouter = Router();
 
+categoriesRouter.use(authenticate);
+
 categoriesRouter.get('/', async (_req: Request, res: Response, next) => {
   try {
   const categories = await prisma.category.findMany({

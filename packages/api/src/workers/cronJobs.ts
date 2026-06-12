@@ -139,7 +139,7 @@ async function autoCloseDaySession(): Promise<void> {
   console.log('[CRON] Checking for sessions to auto-close...');
   try {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = format(now, 'yyyy-MM-dd');
 
     // Find open sessions from yesterday or earlier
     const openSessions = await prisma.daySession.findMany({

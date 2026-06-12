@@ -7,6 +7,8 @@ import { emitAlertResolved } from '../services/socketService';
 
 export const alertsRouter = Router();
 
+alertsRouter.use(authenticate);
+
 alertsRouter.get('/', async (req: Request, res: Response, next) => {
   try {
   const { page = 1, limit = 20, resolved, type } = req.query;

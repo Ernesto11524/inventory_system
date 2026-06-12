@@ -14,6 +14,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 export const productsRouter = Router();
 
+productsRouter.use(authenticate);
+
 // GET /api/products
 productsRouter.get('/', async (req: Request, res: Response, next) => {
   try {

@@ -5,6 +5,8 @@ import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 
 export const activityRouter = Router();
 
+activityRouter.use(authenticate, requireManagerOrAdmin);
+
 // GET /api/activity - Get all activity logs (admin only)
 activityRouter.get('/', async (req: Request, res: Response, next) => {
   try {
@@ -90,7 +92,7 @@ activityRouter.get('/users/:userId', async (req: Request, res: Response, next) =
   const { userId } = req.params;
   const { from, to, page = 1, limit = 50 } = req.query;
   const pageNum = Number(page);
-  const limitNum = Number(limit);
+  const limitNum = Math.min(Number(limit), 100);
   const skip = (pageNum - 1) * limitNum;
 
   const where: any = {

@@ -7,6 +7,8 @@ import { supplierSchema } from '@inventory/shared';
 
 export const suppliersRouter = Router();
 
+suppliersRouter.use(authenticate);
+
 suppliersRouter.get('/', async (req: Request, res: Response, next) => {
   try {
   const { page = 1, limit = 20, search } = req.query;

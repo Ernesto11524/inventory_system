@@ -7,6 +7,8 @@ import type { UserPermissions } from '@inventory/shared';
 
 export const usersRouter = Router();
 
+usersRouter.use(authenticate, requireAdmin);
+
 function getDefaultPermissions(role: string): UserPermissions {
   const basePermissions: UserPermissions = {
     sales: { makeSales: true, viewOwnSales: true, viewAllReports: false },

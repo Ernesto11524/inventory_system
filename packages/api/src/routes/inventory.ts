@@ -7,6 +7,8 @@ import { CACHE_KEYS, CACHE_TTL } from '@inventory/shared';
 
 export const inventoryRouter = Router();
 
+inventoryRouter.use(authenticate);
+
 /**
  * GET /api/inventory
  * All products with current stock levels
@@ -59,17 +61,6 @@ inventoryRouter.get('/low-stock', async (req: Request, res: Response, next) => {
   const cached = await cacheGet(CACHE_KEYS.LOW_STOCK);
   if (cached) return successResponse(res, cached, 'Low stock items retrieved');
 
-  const items = await prisma.inventory.findMany({
-    where: {
-      product: { deletedAt: null },
-      currentStock: { lt: prisma.inventory.fields.currentStock },
-    },
-    include: {
-      product: { include: { category: true } },
-    },
-  });
-
-  // Filter in JS since Prisma can't compare columns directly
   const lowStock = await prisma.$queryRaw<any[]>`
     SELECT 
       i.id,

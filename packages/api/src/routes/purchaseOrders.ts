@@ -7,6 +7,8 @@ import { purchaseOrderSchema, poStatusSchema } from '@inventory/shared';
 
 export const purchaseOrdersRouter = Router();
 
+purchaseOrdersRouter.use(authenticate, requireAdmin);
+
 purchaseOrdersRouter.get('/', async (req: Request, res: Response, next) => {
   try {
   const { page = 1, limit = 20, status, supplierId } = req.query;
@@ -59,7 +61,7 @@ purchaseOrdersRouter.get('/:id', async (req: Request, res: Response, next) => {
   }
 });
 
-purchaseOrdersRouter.post('/', requireAdmin, validate(purchaseOrderSchema), async (req: Request, res: Response, next) => {
+purchaseOrdersRouter.post('/', validate(purchaseOrderSchema), async (req: Request, res: Response, next) => {
   try {
   const { supplierId, items, note } = req.body;
 
@@ -87,7 +89,7 @@ purchaseOrdersRouter.post('/', requireAdmin, validate(purchaseOrderSchema), asyn
   }
 });
 
-purchaseOrdersRouter.patch('/:id/status', requireAdmin, validate(poStatusSchema), async (req: Request, res: Response, next) => {
+purchaseOrdersRouter.patch('/:id/status', validate(poStatusSchema), async (req: Request, res: Response, next) => {
   try {
   const { id } = req.params;
   const { status } = req.body;

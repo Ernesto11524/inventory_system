@@ -12,6 +12,8 @@ import { CACHE_KEYS } from '@inventory/shared';
 
 export const stockRouter = Router();
 
+stockRouter.use(authenticate);
+
 /**
  * POST /api/stock/entry
  * Create a new stock entry (immutable ledger)

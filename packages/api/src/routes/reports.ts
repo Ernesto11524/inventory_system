@@ -6,6 +6,8 @@ import { authenticate } from '../middleware/auth';
 
 export const reportsRouter = Router();
 
+reportsRouter.use(authenticate);
+
 /**
  * GET /api/reports/stock-value
  */
@@ -238,6 +240,7 @@ reportsRouter.get('/export/csv', async (req: Request, res: Response, next) => {
 /**
  * GET /api/reports/sales
  * Sales report with revenue, cost, profit breakdown
+ * Uses actual Sale/SaleItem data (prices at time of sale, not current prices)
  */
 reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
   try {
@@ -245,74 +248,56 @@ reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
 
   const where: any = {
     ...(from ? { createdAt: { gte: new Date(String(from)) } } : {}),
-    ...(to ? { createdAt: { lte: new Date(String(to)) } } : {}),
+    ...(to ? { createdAt: { lte: new Date(String(to) + 'T23:59:59') } } : {}),
   };
 
-  // Get all stock entries in the period
-  const entries = await prisma.stockEntry.findMany({
+  const sales = await prisma.sale.findMany({
     where,
     include: {
-      product: { select: { id: true, name: true, sku: true, price: true, costPrice: true } },
-      performer: { select: { id: true, name: true } },
+      items: {
+        include: { product: { select: { id: true, name: true, sku: true } } },
+      },
+      cashier: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
 
-  // Calculate totals
   let totalRevenue = 0;
   let totalCost = 0;
   let totalUnitsSold = 0;
 
-  // Group by product for top products
   const productMap: Record<string, any> = {};
-
-  // Group by date for daily breakdown
   const dateMap: Record<string, any> = {};
 
-  for (const entry of entries) {
-    const product = entry.product;
-    if (!product) continue;
-
-    const price = Number(product.price);
-    const costPrice = Number(product.costPrice);
-    const qty = entry.quantity;
-    const dateKey = entry.createdAt.toISOString().split('T')[0];
-
-    // Initialize date entry
+  for (const sale of sales) {
+    const dateKey = sale.createdAt.toISOString().split('T')[0];
     if (!dateMap[dateKey]) {
-      dateMap[dateKey] = { date: dateKey, revenue: 0, cost: 0, profit: 0, unitsSold: 0 };
+      dateMap[dateKey] = { date: dateKey, revenue: 0, cost: 0, profit: 0, unitsSold: 0, transactions: 0 };
     }
 
-    if (entry.type === 'sale') {
-      const revenue = price * qty;
-      const cost = costPrice * qty;
+    totalRevenue += Number(sale.total);
+    dateMap[dateKey].revenue += Number(sale.total);
+    dateMap[dateKey].transactions += 1;
+
+    for (const item of sale.items) {
+      const revenue = Number(item.unitPrice) * item.quantity;
+      const cost = Number(item.costPrice) * item.quantity;
       const profit = revenue - cost;
 
-      totalRevenue += revenue;
       totalCost += cost;
-      totalUnitsSold += qty;
-
-      dateMap[dateKey].revenue += revenue;
+      totalUnitsSold += item.quantity;
       dateMap[dateKey].cost += cost;
       dateMap[dateKey].profit += profit;
-      dateMap[dateKey].unitsSold += qty;
+      dateMap[dateKey].unitsSold += item.quantity;
 
-      // Product aggregation
-      if (!productMap[product.id]) {
-        productMap[product.id] = {
-          productId: product.id,
-          name: product.name,
-          sku: product.sku,
-          unitsSold: 0,
-          revenue: 0,
-          cost: 0,
-          profit: 0,
-        };
+      const pid = item.product.id;
+      if (!productMap[pid]) {
+        productMap[pid] = { productId: pid, name: item.product.name, sku: item.product.sku, unitsSold: 0, revenue: 0, cost: 0, profit: 0 };
       }
-      productMap[product.id].unitsSold += qty;
-      productMap[product.id].revenue += revenue;
-      productMap[product.id].cost += cost;
-      productMap[product.id].profit += profit;
+      productMap[pid].unitsSold += item.quantity;
+      productMap[pid].revenue += revenue;
+      productMap[pid].cost += cost;
+      productMap[pid].profit += profit;
     }
   }
 
@@ -327,16 +312,10 @@ reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
     .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   successResponse(res, {
-    totals: {
-      revenue: totalRevenue,
-      cost: totalCost,
-      profit: totalProfit,
-      margin,
-      unitsSold: totalUnitsSold,
-    },
+    totals: { revenue: totalRevenue, cost: totalCost, profit: totalProfit, margin, unitsSold: totalUnitsSold },
     topProducts,
     dailyBreakdown,
-    transactions: entries,
+    transactions: sales,
   }, 'Sales report retrieved');
   } catch (err) {
     next(err);

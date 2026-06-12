@@ -26,7 +26,6 @@ import { permissionsRouter } from './routes/permissions';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
-import { authenticate, requireAdmin, requireManagerOrAdmin } from './middleware/auth';
 import { setupSocketIO } from './services/socketService';
 import { startCronJobs } from './workers/cronJobs';
 
@@ -92,22 +91,6 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-
-// Register middleware on routers
-usersRouter.use(authenticate, requireAdmin);
-permissionsRouter.use(authenticate, requireAdmin);
-activityRouter.use(requireManagerOrAdmin);
-salesRouter.use(authenticate);
-productsRouter.use(authenticate, requireAdmin);
-categoriesRouter.use(authenticate, requireAdmin);
-stockRouter.use(authenticate);
-inventoryRouter.use(authenticate);
-alertsRouter.use(authenticate);
-suppliersRouter.use(authenticate, requireAdmin);
-purchaseOrdersRouter.use(authenticate, requireAdmin);
-reportsRouter.use(authenticate);
-settingsRouter.use(authenticate, requireAdmin);
-daySessionsRouter.use(requireManagerOrAdmin);
 
 // Mount routers
 app.use('/api/auth', authRouter);

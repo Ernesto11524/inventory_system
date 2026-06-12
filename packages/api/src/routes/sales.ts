@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 
 export const salesRouter = Router();
 
+salesRouter.use(authenticate);
+
 // POST /api/sales - Create a new sale
 salesRouter.post('/', authenticate, async (req: Request, res: Response, next) => {
   try {
@@ -217,28 +219,7 @@ salesRouter.get('/aggregate', async (req: Request, res: Response, next) => {
   }
 });
 
-// GET /api/sales/:id - Get single sale
-salesRouter.get('/:id', async (req: Request, res: Response, next) => {
-  try {
-    const { id } = req.params;
-    const sale = await prisma.sale.findUnique({
-      where: { id },
-      include: {
-        items: {
-          include: { product: { select: { name: true, sku: true, unit: true, price: true } } },
-        },
-        cashier: { select: { id: true, name: true } },
-        daySession: { select: { id: true, date: true, status: true } },
-      },
-    });
-    if (!sale) return res.status(404).json({ message: 'Sale not found' });
-    successResponse(res, sale, 'Sale retrieved');
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /api/sales/summary/today - Today's summary
+// GET /api/sales/summary/today - Today's summary (must be before /:id)
 salesRouter.get('/summary/today', async (req: Request, res: Response, next) => {
   try {
   const today = new Date();
@@ -271,6 +252,27 @@ salesRouter.get('/summary/today', async (req: Request, res: Response, next) => {
     totalProfit,
     byPaymentMethod,
   }, 'Today summary retrieved');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/sales/:id - Get single sale
+salesRouter.get('/:id', async (req: Request, res: Response, next) => {
+  try {
+    const { id } = req.params;
+    const sale = await prisma.sale.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: { product: { select: { name: true, sku: true, unit: true, price: true } } },
+        },
+        cashier: { select: { id: true, name: true } },
+        daySession: { select: { id: true, date: true, status: true } },
+      },
+    });
+    if (!sale) return res.status(404).json({ message: 'Sale not found' });
+    successResponse(res, sale, 'Sale retrieved');
   } catch (err) {
     next(err);
   }
