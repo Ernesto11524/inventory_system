@@ -9,7 +9,7 @@ interface SocketState {
   disconnect: () => void;
 }
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:4000';
+const WS_URL = import.meta.env.VITE_WS_URL ?? window.location.origin;
 
 // Single socket instance outside the store — never recreated
 let socketInstance: Socket | null = null;
