@@ -18,6 +18,12 @@ export function WorkerSalesPage() {
     enabled: !!userId,
   });
 
+  const { data: aggregateRes } = useQuery({
+    queryKey: ['worker-sales-aggregate', userId, from, to],
+    queryFn: () => get<any>(`/sales/aggregate?cashierId=${userId}&from=${from}&to=${to}`),
+    enabled: !!userId,
+  });
+
   const { data: workerRes } = useQuery({
     queryKey: ['worker-info', userId],
     queryFn: () => get<any[]>('/activity/workers', {
@@ -34,9 +40,9 @@ export function WorkerSalesPage() {
   const worker = workers.find((w: any) => w.user.id === userId);
   const workerName = worker?.user?.name ?? 'Worker';
 
-  const totalRevenue = sales.reduce((s: number, sale: any) => s + (sale.total || 0), 0);
-  const totalItems = sales.reduce((s: number, sale: any) =>
-    s + (sale.items || []).reduce((si: number, item: any) => si + (item.quantity || 0), 0), 0);
+  const totalRevenue: number = aggregateRes?.data?.totalRevenue ?? 0;
+  const totalTransactions: number = aggregateRes?.data?.totalTransactions ?? 0;
+  const totalItems: number = aggregateRes?.data?.totalItems ?? 0;
 
   return (
     <div className="animate-fade-in">
@@ -65,7 +71,7 @@ export function WorkerSalesPage() {
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Total Sales', value: sales.length, icon: Receipt, color: 'bg-brand-500' },
+          { label: 'Total Sales', value: totalTransactions, icon: Receipt, color: 'bg-brand-500' },
           { label: 'Total Revenue', value: `GH₵${totalRevenue.toFixed(2)}`, icon: TrendingUp, color: 'bg-green-500' },
           { label: 'Items Sold', value: totalItems, icon: ShoppingCart, color: 'bg-amber-500' },
         ].map(({ label, value, icon: Icon, color }) => (

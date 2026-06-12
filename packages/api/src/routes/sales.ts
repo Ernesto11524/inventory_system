@@ -180,6 +180,43 @@ salesRouter.get('/', async (req: Request, res: Response, next) => {
   }
 });
 
+// GET /api/sales/aggregate - Accurate totals for a cashier/date range (no pagination)
+salesRouter.get('/aggregate', async (req: Request, res: Response, next) => {
+  try {
+    const { from, to, cashierId } = req.query;
+
+    const where: any = {
+      ...(cashierId ? { cashierId: String(cashierId) } : {}),
+      ...(from || to ? {
+        createdAt: {
+          ...(from ? { gte: new Date(String(from)) } : {}),
+          ...(to ? { lte: new Date(String(to) + 'T23:59:59') } : {}),
+        },
+      } : {}),
+    };
+
+    const [agg, itemAgg] = await prisma.$transaction([
+      prisma.sale.aggregate({
+        where,
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      prisma.saleItem.aggregate({
+        where: { sale: where },
+        _sum: { quantity: true },
+      }),
+    ]);
+
+    successResponse(res, {
+      totalTransactions: agg._count.id,
+      totalRevenue: agg._sum.total ?? 0,
+      totalItems: itemAgg._sum.quantity ?? 0,
+    }, 'Sales aggregate retrieved');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/sales/:id - Get single sale
 salesRouter.get('/:id', async (req: Request, res: Response, next) => {
   try {
