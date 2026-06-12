@@ -6,6 +6,8 @@ import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 
 export const daySessionsRouter = Router();
 
+daySessionsRouter.use(authenticate, requireManagerOrAdmin);
+
 // GET /api/day-sessions/today
 daySessionsRouter.get('/today', async (_req: Request, res: Response, next) => {
   try {

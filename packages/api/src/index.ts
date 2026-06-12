@@ -106,7 +106,7 @@ suppliersRouter.use(authenticate, requireAdmin);
 purchaseOrdersRouter.use(authenticate, requireAdmin);
 reportsRouter.use(authenticate);
 settingsRouter.use(authenticate, requireAdmin);
-daySessionsRouter.use(authenticate, requireManagerOrAdmin);
+daySessionsRouter.use(requireManagerOrAdmin);
 
 // Mount routers
 app.use('/api/auth', authRouter);
