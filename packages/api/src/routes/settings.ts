@@ -5,6 +5,8 @@ import { authenticate, requireAdmin } from '../middleware/auth';
 
 export const settingsRouter = Router();
 
+settingsRouter.use(authenticate, requireAdmin);
+
 async function getOrCreate() {
   let s = await prisma.appSettings.findUnique({ where: { id: 'singleton' } });
   if (!s) s = await prisma.appSettings.create({ data: { id: 'singleton' } });

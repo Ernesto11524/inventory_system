@@ -31,6 +31,7 @@ import { setupSocketIO } from './services/socketService';
 import { startCronJobs } from './workers/cronJobs';
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 // ─── Socket.IO ────────────────────────────────────────────────────────────────
