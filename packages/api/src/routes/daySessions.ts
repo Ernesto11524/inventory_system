@@ -67,7 +67,7 @@ daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
 
     const endTime = session.closedAt ?? new Date();
 
-    const [activityLogs, salesSummary] = await prisma.$transaction([
+    const [activityLogs, salesSummary, paymentBreakdown, cashEntries] = await Promise.all([
       prisma.activityLog.findMany({
         where: { createdAt: { gte: session.openedAt, lte: endTime } },
         include: { user: { select: { id: true, name: true, role: true } } },
@@ -79,15 +79,43 @@ daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
         _sum: { total: true },
         _count: { id: true },
       }),
+      prisma.sale.groupBy({
+        by: ['paymentMethod'],
+        where: { createdAt: { gte: session.openedAt, lte: endTime } },
+        _sum: { total: true },
+        _count: { id: true },
+      }),
+      prisma.cashEntry.findMany({
+        where: { daySessionId: id },
+        include: { performer: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
     ]);
+
+    const totalRevenue = Number(salesSummary._sum.total ?? 0);
+    const byPaymentMethod: Record<string, { total: number; count: number }> = {};
+    for (const row of paymentBreakdown) {
+      byPaymentMethod[row.paymentMethod] = {
+        total: Number(row._sum.total ?? 0),
+        count: row._count.id,
+      };
+    }
+    const systemMomo = byPaymentMethod['momo']?.total ?? 0;
+    const totalCashIn = cashEntries.filter(e => e.type === 'cash_in').reduce((s, e) => s + e.amount, 0);
+    const totalCashOut = cashEntries.filter(e => e.type === 'cash_out').reduce((s, e) => s + e.amount, 0);
 
     successResponse(res, {
       session,
       activityLogs,
+      cashEntries,
       summary: {
         totalSales: salesSummary._count.id,
-        totalRevenue: salesSummary._sum.total ?? 0,
+        totalRevenue,
         totalActions: activityLogs.length,
+        byPaymentMethod,
+        systemMomo,
+        totalCashIn,
+        totalCashOut,
       },
     }, 'Day session retrieved');
   } catch (err) {
@@ -125,18 +153,48 @@ daySessionsRouter.post('/', async (req: Request, res: Response, next) => {
 daySessionsRouter.patch('/:id/close', async (req: Request, res: Response, next) => {
   try {
   const { id } = req.params;
+  const { notes, physicalCash, changeGiven, momoTotal } = req.body;
 
   const session = await prisma.daySession.findUnique({ where: { id } });
   if (!session) throw new NotFoundError('Day session');
   if (session.status === 'closed') throw new ConflictError('Session is already closed');
 
+  const closedAt = new Date();
+
+  // Compute reconciliation if cash data provided
+  let reconcileData: any = {};
+  if (physicalCash !== undefined) {
+    const [salesAgg, cashEntries] = await Promise.all([
+      prisma.sale.aggregate({
+        where: { createdAt: { gte: session.openedAt, lte: closedAt } },
+        _sum: { total: true },
+      }),
+      prisma.cashEntry.findMany({ where: { daySessionId: id } }),
+    ]);
+    const systemTotal = Number(salesAgg._sum.total ?? 0);
+    const momo = Number(momoTotal ?? 0);
+    const change = Number(changeGiven ?? 0);
+    const physCash = Number(physicalCash);
+    const cashIn = cashEntries.filter(e => e.type === 'cash_in').reduce((s, e) => s + e.amount, 0);
+    const cashOut = cashEntries.filter(e => e.type === 'cash_out').reduce((s, e) => s + e.amount, 0);
+    const totalPhysical = (physCash - change) + momo + cashIn - cashOut;
+    reconcileData = {
+      physicalCash: physCash,
+      changeGiven: change,
+      momoTotal: momo,
+      variance: Math.round((totalPhysical - systemTotal) * 100) / 100,
+      reconciledAt: closedAt,
+    };
+  }
+
   const updated = await prisma.daySession.update({
     where: { id },
     data: {
       status: 'closed',
-      closedAt: new Date(),
+      closedAt,
       closedBy: req.user!.userId,
-      notes: req.body.notes ?? session.notes,
+      notes: notes ?? session.notes,
+      ...reconcileData,
     },
     include: {
       opener: { select: { id: true, name: true } },

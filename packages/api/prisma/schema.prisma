@@ -28,6 +28,7 @@ model User {
   cashierSales       Sale[]        @relation("CashierSales")
   openedDaySessions  DaySession[]  @relation("DaySessionOpener")
   closedDaySessions  DaySession[]  @relation("DaySessionCloser")
+  cashEntries        CashEntry[]
 
   @@map("users")
 }
@@ -261,17 +262,23 @@ model SaleItem {
 // ─── Day Session ─────────────────────────────────────────────────────────────
 
 model DaySession {
-  id        String           @id @default(uuid())
-  date      String           // YYYY-MM-DD, one per calendar day
-  openedAt  DateTime         @default(now())
-  closedAt  DateTime?
-  openedBy  String
-  opener    User             @relation("DaySessionOpener", fields: [openedBy], references: [id])
-  closedBy  String?
-  closer    User?            @relation("DaySessionCloser", fields: [closedBy], references: [id])
-  notes     String?
-  status    DaySessionStatus @default(open)
-  sales     Sale[]
+  id           String           @id @default(uuid())
+  date         String           // YYYY-MM-DD, one per calendar day
+  openedAt     DateTime         @default(now())
+  closedAt     DateTime?
+  openedBy     String
+  opener       User             @relation("DaySessionOpener", fields: [openedBy], references: [id])
+  closedBy     String?
+  closer       User?            @relation("DaySessionCloser", fields: [closedBy], references: [id])
+  notes        String?
+  status       DaySessionStatus @default(open)
+  physicalCash Float?    @map("physicalcash")
+  changeGiven  Float?    @map("changegiven")
+  momoTotal    Float?    @map("momototal")
+  variance     Float?
+  reconciledAt DateTime? @map("reconciledat")
+  sales        Sale[]
+  cashEntries  CashEntry[]
 
   @@unique([date])
   @@index([status])
@@ -281,6 +288,29 @@ model DaySession {
 enum DaySessionStatus {
   open
   closed
+}
+
+// ─── Cash Entry ───────────────────────────────────────────────────────────────
+
+model CashEntry {
+  id           String        @id @default(uuid())
+  type         CashEntryType
+  amount       Float
+  category     String        // debt_collection, supplier_payment, petty_cash, owner_deposit, other
+  description  String
+  daySessionId String     @map("daysessionid")
+  daySession   DaySession @relation(fields: [daySessionId], references: [id])
+  performedBy  String     @map("performedby")
+  performer    User       @relation(fields: [performedBy], references: [id])
+  createdAt    DateTime   @default(now()) @map("createdat")
+
+  @@index([daySessionId])
+  @@map("cash_entries")
+}
+
+enum CashEntryType {
+  cash_in
+  cash_out
 }
 
 // ─── App Settings (singleton) ─────────────────────────────────────────────────

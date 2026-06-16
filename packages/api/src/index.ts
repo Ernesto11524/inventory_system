@@ -23,6 +23,7 @@ import { salesRouter } from './routes/sales';
 import { settingsRouter } from './routes/settings';
 import { daySessionsRouter } from './routes/daySessions';
 import { permissionsRouter } from './routes/permissions';
+import { cashEntriesRouter } from './routes/cashEntries';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
@@ -108,6 +109,7 @@ app.use('/api/purchase-orders', purchaseOrdersRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/day-sessions', daySessionsRouter);
+app.use('/api/cash-entries', cashEntriesRouter);
 
 // ─── Error Handlers ───────────────────────────────────────────────────────────
 

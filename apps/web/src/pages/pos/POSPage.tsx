@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search, Plus, Minus, Trash2, ShoppingCart,
   Barcode, CheckCircle, X, ReceiptText, Tag,
-  User, Phone, CreditCard, Banknote,
+  User, Phone, CreditCard, Banknote, Smartphone,
   History, ChevronRight, Printer,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -28,9 +28,10 @@ interface CartItem {
 }
 
 const PAYMENT_METHODS = [
-  { key: 'cash', label: 'Cash', icon: Banknote, color: 'bg-green-500', desc: 'Physical cash' },
-  { key: 'paystack', label: 'MoMo / Card / Bank', icon: CreditCard, color: 'bg-brand-500', desc: 'Pay via Paystack' },
-  { key: 'credit', label: 'Credit', icon: Tag, color: 'bg-red-500', desc: 'Pay later' },
+  { key: 'cash',     label: 'Cash',         icon: Banknote,   color: 'bg-green-500',  desc: 'Physical cash' },
+  { key: 'momo',     label: 'Mobile Money', icon: Smartphone, color: 'bg-purple-500', desc: 'MoMo / MTN / Telecel' },
+  { key: 'paystack', label: 'Card / Bank',  icon: CreditCard, color: 'bg-brand-500',  desc: 'Pay via Paystack' },
+  { key: 'credit',   label: 'Credit',       icon: Tag,        color: 'bg-red-500',    desc: 'Pay later' },
 ];
 
 async function initializePaystackPayment(params: {
@@ -195,7 +196,7 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span>GH₵${Number(sale.total).toFixed(2)}</span>
             </div>
             <div class="total-row">
-              <span>Payment (${sale.paymentMethod === 'paystack' ? 'MoMo/Card/Bank' : sale.paymentMethod})</span>
+              <span>Payment (${sale.paymentMethod === 'paystack' ? 'Card/Bank' : sale.paymentMethod === 'momo' ? 'Mobile Money' : sale.paymentMethod})</span>
               <span>GH₵${Number(sale.amountPaid).toFixed(2)}</span>
             </div>
             ${sale.change > 0 ? `
@@ -306,7 +307,13 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
     queryFn: () => get<any[]>('/sales', { from, to, limit: 50 }),
   });
 
+  const { data: aggregateData } = useQuery({
+    queryKey: ['pos-sales-aggregate', from, to],
+    queryFn: () => get<any>('/sales/aggregate', { from, to }),
+  });
+
   const sales = data?.data || [];
+  const aggregate = aggregateData?.data;
   const totalRevenue = sales.reduce((s: number, sale: any) => s + Number(sale.total), 0);
 
   return (
@@ -330,8 +337,8 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="px-4 py-3 bg-brand-50 border-b border-brand-100 flex justify-between text-sm">
-          <span className="text-brand-700 font-medium">{sales.length} transactions</span>
-          <span className="text-brand-700 font-bold">GH₵{totalRevenue.toFixed(2)}</span>
+          <span className="text-brand-700 font-medium">{aggregate?.totalTransactions ?? sales.length} transactions · {aggregate?.totalItems ?? 0} items</span>
+          <span className="text-brand-700 font-bold">GH₵{Number(aggregate?.totalRevenue ?? totalRevenue).toFixed(2)}</span>
         </div>
         <div className="flex-1 overflow-y-auto">
           {isLoading ? <LoadingSpinner className="h-32" /> : sales.length === 0 ? (
@@ -357,6 +364,7 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                       <div className="flex gap-2 mt-0.5">
                         <span className={clsx('text-[10px] font-medium px-1.5 py-0.5 rounded-full',
                           sale.paymentMethod === 'cash' ? 'bg-green-100 text-green-700' :
+                          sale.paymentMethod === 'momo' ? 'bg-purple-100 text-purple-700' :
                           sale.paymentMethod === 'paystack' ? 'bg-brand-100 text-brand-700' :
                           'bg-red-100 text-red-700')}>
                           {sale.paymentMethod}
@@ -453,7 +461,7 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                   <span className="text-brand-700">GH₵{Number(reprinting.total).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Payment ({reprinting.paymentMethod === 'paystack' ? 'MoMo/Card/Bank' : reprinting.paymentMethod})</span>
+                  <span>Payment ({reprinting.paymentMethod === 'paystack' ? 'Card/Bank' : reprinting.paymentMethod === 'momo' ? 'Mobile Money' : reprinting.paymentMethod})</span>
                   <span>GH₵{Number(reprinting.amountPaid).toFixed(2)}</span>
                 </div>
                 {reprinting.change > 0 && (
@@ -537,7 +545,7 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                             <span>GH₵${Number(reprinting.total).toFixed(2)}</span>
                           </div>
                           <div class="total-row">
-                            <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'MoMo/Card/Bank' : reprinting.paymentMethod})</span>
+                            <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'Card/Bank' : reprinting.paymentMethod === 'momo' ? 'Mobile Money' : reprinting.paymentMethod})</span>
                             <span>GH₵${Number(reprinting.amountPaid).toFixed(2)}</span>
                           </div>
                           ${reprinting.change > 0 ? `
@@ -691,11 +699,22 @@ export function POSPage() {
         });
         if (!paystackRef) throw new Error('Payment was not completed');
       }
-      return post<any>('/sales', {
-      items: cart, customerName: customerName || undefined,
-      customerPhone: customerPhone || undefined, paymentMethod,
-        subtotal, discount, total, amountPaid: amountPaid || total, change,
-      });
+
+      try {
+        return await post<any>('/sales', {
+          items: cart, customerName: customerName || undefined,
+          customerPhone: customerPhone || undefined, paymentMethod,
+          subtotal, discount, total, amountPaid: amountPaid || total, change,
+        });
+      } catch (err: any) {
+        // Network failure (no response) — save offline so the sale is not lost
+        if (!err.response) {
+          await savePendingSale(saleData);
+          return { offline: true, receiptNo: `OFFLINE-${Date.now().toString(36).toUpperCase()}`, items: cart, subtotal, discount, total, amountPaid: amountPaid || total, change, paymentMethod, customerName, customerPhone, createdAt: new Date().toISOString() };
+        }
+        // Business logic error (day session closed, validation, etc.) — re-throw
+        throw err;
+      }
     },
     onSuccess: (res: any) => {
       setCompletedSale(res?.data ?? res);
@@ -705,7 +724,7 @@ export function POSPage() {
       queryClient.invalidateQueries({ queryKey: ['pos-today-summary'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Sale failed'),
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Sale failed — please re-enter this sale', { duration: 8000 }),
   });
 
   return (
@@ -714,8 +733,10 @@ export function POSPage() {
       <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden border-r border-gray-200">
         <div className="p-3 bg-white border-b border-gray-200 space-y-2 shrink-0">
           {summary && (
-            <div className="flex gap-3 text-xs bg-brand-50 rounded-lg px-3 py-2 items-center">
-              <span className="text-brand-700 font-semibold">📅 Today's Sales</span>
+            <div className="flex gap-3 text-xs bg-brand-50 rounded-lg px-3 py-2 items-center flex-wrap">
+              <span className="text-brand-700 font-semibold">📅 Today:</span>
+              <span className="text-brand-600">{summary.totalTransactions} sales · {summary.totalItems} items</span>
+              <span className="text-brand-700 font-bold">GH₵{Number(summary.totalRevenue).toFixed(2)}</span>
               <button onClick={() => setShowHistory(true)} className="ml-auto text-brand-600 font-medium flex items-center gap-1 hover:text-brand-700">
                 <History size={11} /> View History
               </button>

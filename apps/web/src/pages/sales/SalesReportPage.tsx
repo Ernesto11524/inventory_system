@@ -32,14 +32,15 @@ function MetricCard({ label, value, sub, icon: Icon, color, positive }: {
 const fmt = (v: number) => `GH₵${Number(v || 0).toFixed(2)}`;
 
 export function SalesReportPage() {
+  const weekOpts = { weekStartsOn: 1 as const };
   const [period, setPeriod] = useState<Period>('week');
-  const [from, setFrom] = useState(format(startOfWeek(new Date()), 'yyyy-MM-dd'));
-  const [to, setTo] = useState(format(endOfWeek(new Date()), 'yyyy-MM-dd'));
+  const [from, setFrom] = useState(format(startOfWeek(new Date(), weekOpts), 'yyyy-MM-dd'));
+  const [to, setTo] = useState(format(endOfWeek(new Date(), weekOpts), 'yyyy-MM-dd'));
 
   const handlePeriodChange = (p: Period) => {
     setPeriod(p);
     const now = new Date();
-    if (p === 'week') { setFrom(format(startOfWeek(now), 'yyyy-MM-dd')); setTo(format(endOfWeek(now), 'yyyy-MM-dd')); }
+    if (p === 'week') { setFrom(format(startOfWeek(now, weekOpts), 'yyyy-MM-dd')); setTo(format(endOfWeek(now, weekOpts), 'yyyy-MM-dd')); }
     else if (p === 'month') { setFrom(format(startOfMonth(now), 'yyyy-MM-dd')); setTo(format(endOfMonth(now), 'yyyy-MM-dd')); }
   };
 

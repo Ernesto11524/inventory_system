@@ -209,4 +209,5 @@ export function startCronJobs(): void {
 
   // Run immediately on startup
   setTimeout(checkLowStock, 5000);
+  setTimeout(autoOpenDaySession, 8000);
 }

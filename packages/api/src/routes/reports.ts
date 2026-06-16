@@ -153,40 +153,43 @@ reportsRouter.get('/export/csv', async (req: Request, res: Response, next) => {
 
   if (type === 'sales') {
     const salesFrom = from ? new Date(String(from)) : undefined;
-    const salesTo = to ? new Date(String(to)) : undefined;
+    const salesToStr = String(to);
+    const salesToDate = to
+      ? new Date(salesToStr.includes('T') ? salesToStr : salesToStr + 'T23:59:59')
+      : undefined;
     const salesWhere: any = {
       ...(salesFrom ? { createdAt: { gte: salesFrom } } : {}),
-      ...(salesTo ? { createdAt: { lte: salesTo } } : {}),
+      ...(salesToDate ? { createdAt: { lte: salesToDate } } : {}),
     };
-    const salesEntries = await prisma.stockEntry.findMany({
+    // Use Sale+SaleItem for historically accurate prices
+    const saleDocs = await prisma.sale.findMany({
       where: salesWhere,
       include: {
-        product: { select: { name: true, sku: true, price: true, costPrice: true } },
-        performer: { select: { name: true } },
+        items: { include: { product: { select: { name: true, sku: true } } } },
+        cashier: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    rows = salesEntries.map(e => {
-      const isSale = e.type === 'sale';
-      const price = isSale ? Number(e.product.price) : Number(e.product.costPrice);
-      const total = e.quantity * price;
-      const revenue = isSale ? total : 0;
-      const cost = isSale ? e.quantity * Number(e.product.costPrice) : total;
-      const profit = revenue - cost;
-      return {
-        date: e.createdAt.toISOString(),
-        product: e.product.name,
-        sku: e.product.sku,
-        type: e.type,
-        quantity: e.quantity,
-        unitPrice: price.toFixed(2),
-        totalValue: total.toFixed(2),
-        revenue: revenue.toFixed(2),
-        costOfGoods: cost.toFixed(2),
-        profit: profit.toFixed(2),
-        performedBy: e.performer.name,
-      };
-    });
+    rows = saleDocs.flatMap(sale =>
+      sale.items.map(item => {
+        const revenue = Number(item.unitPrice) * item.quantity;
+        const cost = Number(item.costPrice) * item.quantity;
+        return {
+          date: sale.createdAt.toISOString(),
+          receiptNo: sale.receiptNo,
+          product: item.product.name,
+          sku: item.product.sku,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice).toFixed(2),
+          unitCost: Number(item.costPrice).toFixed(2),
+          revenue: revenue.toFixed(2),
+          costOfGoods: cost.toFixed(2),
+          profit: (revenue - cost).toFixed(2),
+          paymentMethod: sale.paymentMethod,
+          cashier: sale.cashier.name,
+        };
+      })
+    );
     filename = `sales-report-${new Date().toISOString().split('T')[0]}.csv`;
   } else if (type === 'inventory') {
     rows = await prisma.$queryRaw<any[]>`
@@ -246,9 +249,10 @@ reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
   try {
   const { from, to } = req.query;
 
+  const toStr = String(to);
   const where: any = {
     ...(from ? { createdAt: { gte: new Date(String(from)) } } : {}),
-    ...(to ? { createdAt: { lte: new Date(String(to) + 'T23:59:59') } } : {}),
+    ...(to ? { createdAt: { lte: new Date(toStr.includes('T') ? toStr : toStr + 'T23:59:59') } } : {}),
   };
 
   const sales = await prisma.sale.findMany({
@@ -311,11 +315,22 @@ reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
   const dailyBreakdown = Object.values(dateMap)
     .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
+  // StockEntry records for the "All Transactions" list — matches what the frontend template expects
+  const transactions = await prisma.stockEntry.findMany({
+    where,
+    include: {
+      product: { select: { id: true, name: true, sku: true, price: true, costPrice: true } },
+      performer: { select: { id: true, name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 500,
+  });
+
   successResponse(res, {
     totals: { revenue: totalRevenue, cost: totalCost, profit: totalProfit, margin, unitsSold: totalUnitsSold },
     topProducts,
     dailyBreakdown,
-    transactions: sales,
+    transactions,
   }, 'Sales report retrieved');
   } catch (err) {
     next(err);

@@ -227,28 +227,42 @@ salesRouter.get('/summary/today', async (req: Request, res: Response, next) => {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const sales = await prisma.sale.findMany({
+  const [saleAgg, itemAgg] = await prisma.$transaction([
+    prisma.sale.aggregate({
+      where: { createdAt: { gte: today, lt: tomorrow } },
+      _sum: { total: true },
+      _count: { id: true },
+    }),
+    prisma.saleItem.aggregate({
+      where: { sale: { createdAt: { gte: today, lt: tomorrow } } },
+      _sum: { quantity: true },
+    }),
+  ]);
+
+  const paymentRows = await prisma.sale.groupBy({
+    by: ['paymentMethod'],
     where: { createdAt: { gte: today, lt: tomorrow } },
-    include: { items: true },
+    _sum: { total: true },
   });
 
-  const totalRevenue = sales.reduce((s, sale) => s + sale.total, 0);
-  const totalTransactions = sales.length;
-  const totalItems = sales.reduce((s, sale) =>
-    s + sale.items.reduce((si, item) => si + item.quantity, 0), 0);
-  const totalProfit = sales.reduce((s, sale) =>
-    s + sale.items.reduce((si, item) =>
-      si + (item.quantity * (item.unitPrice - item.costPrice)), 0), 0);
-
   const byPaymentMethod: Record<string, number> = {};
-  for (const sale of sales) {
-    byPaymentMethod[sale.paymentMethod] = (byPaymentMethod[sale.paymentMethod] || 0) + sale.total;
+  for (const row of paymentRows) {
+    byPaymentMethod[row.paymentMethod] = Number(row._sum.total ?? 0);
   }
 
+  // Profit requires item-level data — keep a lightweight query only for profit
+  const profitItems = await prisma.saleItem.findMany({
+    where: { sale: { createdAt: { gte: today, lt: tomorrow } } },
+    select: { quantity: true, unitPrice: true, costPrice: true },
+  });
+  const totalProfit = profitItems.reduce(
+    (s, item) => s + item.quantity * (Number(item.unitPrice) - Number(item.costPrice)), 0
+  );
+
   successResponse(res, {
-    totalRevenue,
-    totalTransactions,
-    totalItems,
+    totalRevenue: Number(saleAgg._sum.total ?? 0),
+    totalTransactions: saleAgg._count.id,
+    totalItems: Number(itemAgg._sum.quantity ?? 0),
     totalProfit,
     byPaymentMethod,
   }, 'Today summary retrieved');
