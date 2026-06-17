@@ -15,6 +15,7 @@ export interface UserPermissions {
     makeSales: boolean;
     viewOwnSales: boolean;
     viewAllReports: boolean;
+    viewFullSalesHistory: boolean;
   };
   inventory: {
     addStock: boolean;

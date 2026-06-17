@@ -54,6 +54,11 @@ const PAYMENT_METHODS = [
   { key: 'credit',   label: 'Credit',       icon: Tag,        color: 'bg-red-500',    desc: 'Pay later' },
 ];
 
+const SPLIT_METHODS = [
+  { key: 'cash',  label: 'Cash',         icon: Banknote,   color: 'bg-green-500' },
+  { key: 'momo',  label: 'Mobile Money', icon: Smartphone, color: 'bg-purple-500' },
+];
+
 async function initializePaystackPayment(params: {
   email: string;
   amount: number; // in pesewas (GHS * 100)
@@ -223,10 +228,19 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span>TOTAL</span>
               <span>GH&#8373;${Number(sale.total).toFixed(2)}</span>
             </div>
-            <div class="total-row">
-              <span>Payment (${sale.paymentMethod === 'paystack' ? 'Card/Bank' : sale.paymentMethod === 'momo' ? 'Mobile Money' : sale.paymentMethod})</span>
-              <span>GH&#8373;${Number(sale.amountPaid).toFixed(2)}</span>
-            </div>
+            ${sale.paymentMethod === 'split' && Array.isArray(sale.splitPayments) ? `
+              ${sale.splitPayments.map((sp: any) => `
+                <div class="total-row">
+                  <span>${sp.method === 'momo' ? 'Mobile Money' : sp.method === 'paystack' ? 'Card/Bank' : sp.method.charAt(0).toUpperCase() + sp.method.slice(1)}</span>
+                  <span>GH&#8373;${Number(sp.amount).toFixed(2)}</span>
+                </div>
+              `).join('')}
+            ` : `
+              <div class="total-row">
+                <span>Payment (${sale.paymentMethod === 'paystack' ? 'Card/Bank' : sale.paymentMethod === 'momo' ? 'Mobile Money' : sale.paymentMethod})</span>
+                <span>GH&#8373;${Number(sale.amountPaid).toFixed(2)}</span>
+              </div>
+            `}
             ${sale.change > 0 ? `
               <div class="total-row">
                 <span>Change</span>
@@ -301,10 +315,19 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span>Total</span>
               <span className="text-brand-700">GH₵{Number(sale.total).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Payment ({sale.paymentMethod === "paystack" ? "MoMo/Card/Bank" : sale.paymentMethod})</span>
-              <span>GH₵{Number(sale.amountPaid).toFixed(2)}</span>
-            </div>
+            {sale.paymentMethod === 'split' && Array.isArray(sale.splitPayments) ? (
+              sale.splitPayments.map((sp: any, i: number) => (
+                <div key={i} className="flex justify-between text-xs text-gray-500">
+                  <span>{sp.method === 'momo' ? 'Mobile Money' : sp.method === 'paystack' ? 'Card/Bank' : sp.method.charAt(0).toUpperCase() + sp.method.slice(1)}</span>
+                  <span>GH₵{Number(sp.amount).toFixed(2)}</span>
+                </div>
+              ))
+            ) : (
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Payment ({sale.paymentMethod === "paystack" ? "MoMo/Card/Bank" : sale.paymentMethod})</span>
+                <span>GH₵{Number(sale.amountPaid).toFixed(2)}</span>
+              </div>
+            )}
             {sale.change > 0 && (
               <div className="flex justify-between text-xs font-medium text-green-600">
                 <span>Change</span>
@@ -583,10 +606,19 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                             <span>TOTAL</span>
                             <span>GH&#8373;${Number(reprinting.total).toFixed(2)}</span>
                           </div>
-                          <div class="total-row">
-                            <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'Card/Bank' : reprinting.paymentMethod === 'momo' ? 'Mobile Money' : reprinting.paymentMethod})</span>
-                            <span>GH&#8373;${Number(reprinting.amountPaid).toFixed(2)}</span>
-                          </div>
+                          ${reprinting.paymentMethod === 'split' && Array.isArray(reprinting.splitPayments) ? `
+                            ${reprinting.splitPayments.map((sp: any) => `
+                              <div class="total-row">
+                                <span>${sp.method === 'momo' ? 'Mobile Money' : sp.method === 'paystack' ? 'Card/Bank' : sp.method.charAt(0).toUpperCase() + sp.method.slice(1)}</span>
+                                <span>GH&#8373;${Number(sp.amount).toFixed(2)}</span>
+                              </div>
+                            `).join('')}
+                          ` : `
+                            <div class="total-row">
+                              <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'Card/Bank' : reprinting.paymentMethod === 'momo' ? 'Mobile Money' : reprinting.paymentMethod})</span>
+                              <span>GH&#8373;${Number(reprinting.amountPaid).toFixed(2)}</span>
+                            </div>
+                          `}
                           ${reprinting.change > 0 ? `
                             <div class="total-row">
                               <span>Change</span>
@@ -635,6 +667,8 @@ export function POSPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState<number | ''>('');
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitAmounts, setSplitAmounts] = useState<{ cash: number | ''; momo: number | '' }>({ cash: '', momo: '' });
   const [heldCarts, setHeldCarts] = useState<HeldCart[]>(loadHeldCarts);
   const [showDrafts, setShowDrafts] = useState(false);
 
@@ -710,7 +744,7 @@ export function POSPage() {
     const updated = [...heldCarts, draft];
     setHeldCarts(updated);
     saveHeldCarts(updated);
-    setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setPaymentMethod('cash'); setAmountPaid('');
+    setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setPaymentMethod('cash'); setAmountPaid(''); setSplitEnabled(false); setSplitAmounts({ cash: '', momo: '' });
     toast.success(`Cart held for ${label}`, { icon: '⏸️' });
   };
 
@@ -753,18 +787,34 @@ export function POSPage() {
   const change = amountPaid !== '' ? Math.max(0, Number(amountPaid) - total) : 0;
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
 
+  const splitCash = Number(splitAmounts.cash) || 0;
+  const splitMomo = splitEnabled ? Math.max(0, total - splitCash) : 0;
+  const splitValid = splitEnabled ? (splitCash > 0 && splitCash < total) : true;
+  const splitChange = splitEnabled ? Math.max(0, splitCash - (total - (Number(splitAmounts.momo) || splitMomo))) : 0;
+
   const saleMutation = useMutation({
     mutationFn: async () => {
+      const effectivePaymentMethod = splitEnabled ? 'split' : paymentMethod;
+      const effectiveAmountPaid = splitEnabled ? total : (amountPaid || total);
+      const effectiveChange = splitEnabled ? Math.max(0, splitCash - (total - splitMomo)) : change;
+      const effectiveSplitPayments = splitEnabled
+        ? [{ method: 'cash', amount: splitCash }, { method: 'momo', amount: splitMomo }]
+        : undefined;
+
       const saleData = {
         items: cart, customerName: customerName || undefined,
-        customerPhone: customerPhone || undefined, paymentMethod,
-        subtotal, discount, total, amountPaid: amountPaid || total, change,
+        customerPhone: customerPhone || undefined,
+        paymentMethod: effectivePaymentMethod,
+        subtotal, discount, total,
+        amountPaid: effectiveAmountPaid,
+        change: effectiveChange,
+        splitPayments: effectiveSplitPayments,
       };
 
       // If offline, save to IndexedDB
       if (!isOnline) {
         await savePendingSale(saleData);
-        return { offline: true, receiptNo: `OFFLINE-${Date.now().toString(36).toUpperCase()}`, items: cart, subtotal, discount, total, amountPaid: amountPaid || total, change, paymentMethod, customerName, customerPhone, createdAt: new Date().toISOString() };
+        return { offline: true, receiptNo: `OFFLINE-${Date.now().toString(36).toUpperCase()}`, items: cart, subtotal, discount, total, amountPaid: effectiveAmountPaid, change: effectiveChange, paymentMethod: effectivePaymentMethod, splitPayments: effectiveSplitPayments, customerName, customerPhone, createdAt: new Date().toISOString() };
       }
 
       // If Paystack selected, process payment first
@@ -783,16 +833,12 @@ export function POSPage() {
       }
 
       try {
-        return await post<any>('/sales', {
-          items: cart, customerName: customerName || undefined,
-          customerPhone: customerPhone || undefined, paymentMethod,
-          subtotal, discount, total, amountPaid: amountPaid || total, change,
-        });
+        return await post<any>('/sales', saleData);
       } catch (err: any) {
         // Network failure (no response) — save offline so the sale is not lost
         if (!err.response) {
           await savePendingSale(saleData);
-          return { offline: true, receiptNo: `OFFLINE-${Date.now().toString(36).toUpperCase()}`, items: cart, subtotal, discount, total, amountPaid: amountPaid || total, change, paymentMethod, customerName, customerPhone, createdAt: new Date().toISOString() };
+          return { offline: true, receiptNo: `OFFLINE-${Date.now().toString(36).toUpperCase()}`, items: cart, subtotal, discount, total, amountPaid: effectiveAmountPaid, change: effectiveChange, paymentMethod: effectivePaymentMethod, splitPayments: effectiveSplitPayments, customerName, customerPhone, createdAt: new Date().toISOString() };
         }
         // Business logic error (day session closed, validation, etc.) — re-throw
         throw err;
@@ -801,7 +847,7 @@ export function POSPage() {
     onSuccess: (res: any) => {
       setCompletedSale(res?.data ?? res);
       setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone('');
-      setAmountPaid(''); setPaymentMethod('cash');
+      setAmountPaid(''); setPaymentMethod('cash'); setSplitEnabled(false); setSplitAmounts({ cash: '', momo: '' });
       queryClient.invalidateQueries({ queryKey: ['pos-products'] });
       queryClient.invalidateQueries({ queryKey: ['pos-today-summary'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] });
@@ -885,7 +931,7 @@ export function POSPage() {
               </button>
             )}
             {cart.length > 0 && (
-              <button onClick={() => { setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setAmountPaid(''); }}
+              <button onClick={() => { setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setAmountPaid(''); setSplitEnabled(false); setSplitAmounts({ cash: '', momo: '' }); }}
                 className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1">
                 <X size={11} /> Clear
               </button>
@@ -939,21 +985,82 @@ export function POSPage() {
 
           {/* Payment method */}
           <div className="border-t border-gray-200 px-4 py-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Payment Method</p>
-            <div className="flex flex-col gap-1.5">
-              {PAYMENT_METHODS.map(({ key, label, icon: Icon, color, desc }) => (
-                <button key={key} onClick={() => setPaymentMethod(key)}
-                  className={clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-all w-full',
-                    paymentMethod === key ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}>
-                  <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', color)}><Icon size={14} className="text-white" /></div>
-                  <div className="text-left">
-                    <p className="font-semibold text-sm">{label}</p>
-                    <p className="text-xs text-gray-400">{desc}</p>
-                  </div>
-                  {paymentMethod === key && <CheckCircle size={16} className="text-brand-500 ml-auto" />}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Payment Method</p>
+              <button
+                onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmounts({ cash: '', momo: '' }); }}
+                className={clsx('text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all',
+                  splitEnabled ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-50 text-gray-600 border-gray-300 hover:border-purple-400 hover:text-purple-600')}
+              >
+                ⚡ Split
+              </button>
             </div>
+
+            {splitEnabled ? (
+              <div className="space-y-2">
+                <p className="text-xs text-purple-700 bg-purple-50 rounded-lg px-3 py-2 font-medium">
+                  Split payment: Cash + Mobile Money
+                </p>
+                {SPLIT_METHODS.map(({ key, label, icon: Icon, color }) => (
+                  <div key={key} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', color)}>
+                      <Icon size={14} className="text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 w-24 shrink-0">{label}</span>
+                    <div className="relative flex-1">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">GH₵</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="input pl-8 text-sm py-1.5 w-full"
+                        placeholder="0.00"
+                        value={key === 'cash' ? splitAmounts.cash : splitAmounts.momo}
+                        onChange={e => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value);
+                          if (key === 'cash') {
+                            const cashVal = val === '' ? 0 : Number(val);
+                            setSplitAmounts({ cash: val, momo: Math.max(0, total - cashVal) || '' });
+                          } else {
+                            const momoVal = val === '' ? 0 : Number(val);
+                            setSplitAmounts({ momo: val, cash: Math.max(0, total - momoVal) || '' });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {splitCash > 0 && splitMomo >= 0 && (
+                  <div className="flex justify-between text-xs px-1">
+                    <span className="text-gray-500">Total split:</span>
+                    <span className={clsx('font-semibold', Math.abs(splitCash + splitMomo - total) < 0.01 ? 'text-green-600' : 'text-red-500')}>
+                      GH₵{(splitCash + splitMomo).toFixed(2)} / GH₵{total.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {splitCash > total && (
+                  <div className="flex justify-between text-xs px-1 text-green-600 font-semibold">
+                    <span>Change from cash:</span>
+                    <span>GH₵{(splitCash - total).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {PAYMENT_METHODS.map(({ key, label, icon: Icon, color, desc }) => (
+                  <button key={key} onClick={() => setPaymentMethod(key)}
+                    className={clsx('flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-all w-full',
+                      paymentMethod === key ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}>
+                    <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', color)}><Icon size={14} className="text-white" /></div>
+                    <div className="text-left">
+                      <p className="font-semibold text-sm">{label}</p>
+                      <p className="text-xs text-gray-400">{desc}</p>
+                    </div>
+                    {paymentMethod === key && <CheckCircle size={16} className="text-brand-500 ml-auto" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -964,7 +1071,7 @@ export function POSPage() {
             <span className="text-xs text-gray-600 shrink-0">Discount</span>
             <input type="number" min="0" value={discount || ''} onChange={e => setDiscount(Math.max(0, Number(e.target.value)))} className="input text-right text-sm py-1.5 flex-1" placeholder="0.00" />
           </div>
-          {(paymentMethod === 'cash') && (
+          {!splitEnabled && paymentMethod === 'cash' && (
             <div className="flex items-center gap-2">
               <Banknote size={12} className="text-gray-400" />
               <span className="text-xs text-gray-600 shrink-0">Amount paid</span>
@@ -975,13 +1082,23 @@ export function POSPage() {
             <div className="flex justify-between text-sm"><span className="text-gray-500">Subtotal</span><span>GH₵{subtotal.toFixed(2)}</span></div>
             {discount > 0 && <div className="flex justify-between text-sm text-green-600"><span>Discount</span><span>-GH₵{discount.toFixed(2)}</span></div>}
             <div className="flex justify-between font-bold border-t border-gray-200 pt-1.5"><span>Total</span><span className="text-brand-700">GH₵{total.toFixed(2)}</span></div>
-            {paymentMethod === 'cash' && amountPaid !== '' && Number(amountPaid) >= total && (
-              <div className="flex justify-between text-sm font-semibold text-green-600"><span>Change</span><span>GH₵{change.toFixed(2)}</span></div>
+            {splitEnabled ? (
+              <>
+                <div className="flex justify-between text-xs text-gray-500"><span>Cash</span><span>GH₵{splitCash.toFixed(2)}</span></div>
+                <div className="flex justify-between text-xs text-gray-500"><span>Mobile Money</span><span>GH₵{splitMomo.toFixed(2)}</span></div>
+                {splitCash > total && <div className="flex justify-between text-sm font-semibold text-green-600"><span>Change</span><span>GH₵{(splitCash - total).toFixed(2)}</span></div>}
+              </>
+            ) : (
+              paymentMethod === 'cash' && amountPaid !== '' && Number(amountPaid) >= total && (
+                <div className="flex justify-between text-sm font-semibold text-green-600"><span>Change</span><span>GH₵{change.toFixed(2)}</span></div>
+              )
             )}
           </div>
-          <button onClick={() => saleMutation.mutate()} disabled={cart.length === 0 || saleMutation.isPending}
+          <button
+            onClick={() => saleMutation.mutate()}
+            disabled={cart.length === 0 || saleMutation.isPending || (splitEnabled && !splitValid)}
             className={clsx('w-full py-3 rounded-xl font-bold text-sm transition-all',
-              cart.length === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-95 shadow-lg')}>
+              cart.length === 0 || (splitEnabled && !splitValid) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-95 shadow-lg')}>
             {saleMutation.isPending ? 'Processing…' : !isOnline ? `💾 Save Offline · GH₵${total.toFixed(2)}` : `Complete Sale · GH₵${total.toFixed(2)}`}
           </button>
         </div>

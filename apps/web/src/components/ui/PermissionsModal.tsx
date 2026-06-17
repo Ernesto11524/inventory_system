@@ -136,6 +136,8 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               <PermissionToggle label="Make Sales" path={['sales', 'makeSales']} checked={resolvedPermissions.sales.makeSales} />
               <PermissionToggle label="View Own Sales" path={['sales', 'viewOwnSales']} checked={resolvedPermissions.sales.viewOwnSales} />
               <PermissionToggle label="View All Reports" path={['sales', 'viewAllReports']} checked={resolvedPermissions.sales.viewAllReports} />
+              <PermissionToggle label="View Full Sale History (unlimited)" path={['sales', 'viewFullSalesHistory']} checked={!!(resolvedPermissions.sales as any).viewFullSalesHistory} />
+              <p className="text-xs text-gray-400 ml-3 -mt-1.5 pb-1">When off: limited to last 50 transactions</p>
             </div>
           </div>
 

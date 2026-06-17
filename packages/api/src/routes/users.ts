@@ -11,7 +11,7 @@ usersRouter.use(authenticate, requireAdmin);
 
 function getDefaultPermissions(role: string): UserPermissions {
   const basePermissions: UserPermissions = {
-    sales: { makeSales: true, viewOwnSales: true, viewAllReports: false },
+    sales: { makeSales: true, viewOwnSales: true, viewAllReports: false, viewFullSalesHistory: false },
     inventory: { addStock: false, removeStock: false, viewInventory: true },
     daySessions: { openClose: false, viewSessions: true },
     products: { create: false, edit: false, delete: false, view: true },
@@ -29,7 +29,7 @@ function getDefaultPermissions(role: string): UserPermissions {
 
   if (role === 'admin') {
     return {
-      sales: { makeSales: true, viewOwnSales: true, viewAllReports: true },
+      sales: { makeSales: true, viewOwnSales: true, viewAllReports: true, viewFullSalesHistory: true },
       inventory: { addStock: true, removeStock: true, viewInventory: true },
       daySessions: { openClose: true, viewSessions: true },
       products: { create: true, edit: true, delete: true, view: true },

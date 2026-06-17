@@ -18,7 +18,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
   try {
     const {
       items, customerName, customerPhone, paymentMethod,
-      subtotal, discount, total, amountPaid, change, note,
+      subtotal, discount, total, amountPaid, change, note, splitPayments,
     } = req.body;
 
     if (!items || items.length === 0) {
@@ -67,13 +67,14 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
           receiptNo,
           customerName: customerName || null,
           customerPhone: customerPhone || null,
-          paymentMethod: paymentMethod || 'cash',
+          paymentMethod: splitPayments && splitPayments.length > 1 ? 'split' : (paymentMethod || 'cash'),
           subtotal: Number(subtotal),
           discount: Number(discount || 0),
           total: Number(total),
           amountPaid: Number(amountPaid || total),
           change: Number(change || 0),
           note: note || null,
+          splitPayments: splitPayments && splitPayments.length > 1 ? splitPayments : undefined,
           daySessionId: daySession.id,
           cashierId: req.user?.userId || '',
           items: {
@@ -145,8 +146,14 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
 salesRouter.get('/', async (req: Request, res: Response, next) => {
   try {
   const { page = 1, limit = 20, from, to, cashierId, paymentMethod } = req.query;
-  const pageNum = Number(page);
-  const limitNum = Math.min(Number(limit), 100);
+
+  const requestingUser = req.user!;
+  const isPrivileged = requestingUser.role === 'admin' || requestingUser.role === 'manager';
+  const hasFullHistory = isPrivileged || (requestingUser.permissions as any)?.sales?.viewFullSalesHistory;
+
+  // Restricted users: always page 1, max 50 records (most recent 50 only)
+  const pageNum = hasFullHistory ? Number(page) : 1;
+  const limitNum = hasFullHistory ? Math.min(Number(limit), 100) : 50;
   const skip = (pageNum - 1) * limitNum;
 
   const where: any = {
@@ -187,6 +194,10 @@ salesRouter.get('/aggregate', async (req: Request, res: Response, next) => {
   try {
     const { from, to, cashierId } = req.query;
 
+    const requestingUser = req.user!;
+    const isPrivileged = requestingUser.role === 'admin' || requestingUser.role === 'manager';
+    const hasFullHistory = isPrivileged || (requestingUser.permissions as any)?.sales?.viewFullSalesHistory;
+
     const where: any = {
       ...(cashierId ? { cashierId: String(cashierId) } : {}),
       ...(from || to ? {
@@ -196,6 +207,21 @@ salesRouter.get('/aggregate', async (req: Request, res: Response, next) => {
         },
       } : {}),
     };
+
+    // Restricted users: aggregate only over their visible 50 records
+    if (!hasFullHistory) {
+      const limited = await prisma.sale.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { items: { select: { quantity: true } } },
+      });
+      return successResponse(res, {
+        totalTransactions: limited.length,
+        totalRevenue: limited.reduce((s, sale) => s + sale.total, 0),
+        totalItems: limited.reduce((s, sale) => s + sale.items.reduce((is, item) => is + item.quantity, 0), 0),
+      }, 'Sales aggregate retrieved');
+    }
 
     const [agg, itemAgg] = await prisma.$transaction([
       prisma.sale.aggregate({

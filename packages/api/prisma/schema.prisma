@@ -233,6 +233,7 @@ model Sale {
   amountPaid     Float         @default(0)
   change         Float         @default(0)
   note           String?
+  splitPayments  Json?         @map("split_payments")
   daySessionId   String?
   daySession     DaySession?   @relation(fields: [daySessionId], references: [id], onDelete: SetNull)
   cashierId      String
