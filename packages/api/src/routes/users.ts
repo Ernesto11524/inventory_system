@@ -107,6 +107,23 @@ usersRouter.delete('/:id', async (req: Request, res: Response, next) => {
     if (!user) throw new NotFoundError('User');
     if (user.isHidden) throw new Error('Cannot delete system accounts');
 
+    // Check for any records that would block deletion (FK RESTRICT constraints)
+    const [salesCount, stockCount, sessionCount, activityCount, cashCount] = await Promise.all([
+      prisma.sale.count({ where: { cashierId: id } }),
+      prisma.stockEntry.count({ where: { performedBy: id } }),
+      prisma.daySession.count({ where: { openedBy: id } }),
+      prisma.activityLog.count({ where: { userId: id } }),
+      prisma.cashEntry.count({ where: { performedBy: id } }),
+    ]);
+
+    const hasRecords = salesCount + stockCount + sessionCount + activityCount + cashCount > 0;
+    if (hasRecords) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete ${user.name} — they have existing records (${salesCount} sales, ${stockCount} stock entries, ${activityCount} activity logs). Use the visibility toggle to hide them instead.`,
+      });
+    }
+
     await prisma.user.delete({ where: { id } });
     successResponse(res, null, 'User deleted');
   } catch (err) {

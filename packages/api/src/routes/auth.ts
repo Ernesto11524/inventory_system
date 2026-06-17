@@ -48,7 +48,7 @@ authRouter.post('/login', authLimiter, validate(loginSchema), async (req: Reques
     const { email, password } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new UnauthorizedError('Invalid email or password');
+    if (!user || user.isHidden) throw new UnauthorizedError('Invalid email or password');
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedError('Invalid email or password');

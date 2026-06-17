@@ -231,33 +231,69 @@ function ChangePasswordModal({ worker, onClose }: { worker: any; onClose: () => 
 
 function DeleteUserModal({ worker, onClose }: { worker: any; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const [blockMessage, setBlockMessage] = useState<string | null>(null);
 
-  const mutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: () => del(`/users/${worker.user.id}`),
     onSuccess: () => {
-      // Clear workers cache completely instead of invalidating to avoid IndexedDB caching issues
       queryClient.removeQueries({ queryKey: ['workers'] });
       toast.success(`${worker.user.name} deleted`);
       onClose();
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete user'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Failed to delete user';
+      setBlockMessage(msg);
+    },
+  });
+
+  const hideMutation = useMutation({
+    mutationFn: () => patch(`/users/${worker.user.id}/visibility`, { isHidden: true }),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['workers'] });
+      toast.success(`${worker.user.name} is now hidden`);
+      onClose();
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to hide user'),
   });
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Are you sure you want to delete <strong>{worker.user.name}</strong>? This cannot be undone.
-      </p>
-      <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="btn-secondary">Cancel</button>
-        <button
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending}
-          className="btn-primary bg-red-600 hover:bg-red-700"
-        >
-          {mutation.isPending ? 'Deleting…' : 'Delete User'}
-        </button>
-      </div>
+      {blockMessage ? (
+        <div className="space-y-3">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">{blockMessage}</p>
+          </div>
+          <p className="text-sm text-gray-600">
+            Hiding <strong>{worker.user.name}</strong> will remove them from the worker list and prevent them from logging in, while keeping their records intact.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className="btn-secondary">Cancel</button>
+            <button
+              onClick={() => hideMutation.mutate()}
+              disabled={hideMutation.isPending}
+              className="btn-primary"
+            >
+              {hideMutation.isPending ? 'Hiding…' : 'Hide User Instead'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-gray-600">
+            Are you sure you want to delete <strong>{worker.user.name}</strong>? This cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className="btn-secondary">Cancel</button>
+            <button
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="btn-primary bg-red-600 hover:bg-red-700"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete User'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
