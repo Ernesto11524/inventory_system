@@ -376,7 +376,9 @@ function ActivityModal({ worker, onClose }: { worker: any; onClose: () => void }
 }
 
 export function WorkerMonitorPage() {
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showHidden, setShowHidden] = useState(false);
   const [showAddUser, setShowAddUser] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
   const [workerToDelete, setWorkerToDelete] = useState<any>(null);
@@ -389,8 +391,26 @@ export function WorkerMonitorPage() {
     refetchInterval: 60000,
   });
 
+  const { data: hiddenData } = useQuery({
+    queryKey: ['hidden-users'],
+    queryFn: () => get<any[]>('/users', { includeHidden: 'true' }),
+    enabled: showHidden,
+  });
+
+  const unhideMutation = useMutation({
+    mutationFn: (userId: string) => patch(`/users/${userId}/visibility`, { isHidden: false }),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['workers'] });
+      queryClient.removeQueries({ queryKey: ['hidden-users'] });
+      toast.success('User restored successfully');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to restore user'),
+  });
+
   const workers = (data?.data as any) || [];
   const activeWorkers = workers.filter((w: any) => w.logins.length > 0);
+  const activeWorkerIds = new Set(workers.map((w: any) => w.user.id));
+  const hiddenUsers = ((hiddenData?.data as any) || []).filter((u: any) => u.isHidden);
 
   return (
     <div className="animate-fade-in">
@@ -405,6 +425,12 @@ export function WorkerMonitorPage() {
               value={date}
               onChange={e => setDate(e.target.value)}
             />
+            <button
+              onClick={() => setShowHidden(v => !v)}
+              className={clsx('btn-secondary btn-sm', showHidden && 'bg-gray-200')}
+            >
+              <EyeOff size={13} /> {showHidden ? 'Hide Hidden' : 'Show Hidden'}
+            </button>
             <button onClick={() => setShowAddUser(true)} className="btn-primary btn-sm">
               <UserPlus size={13} /> Add User
             </button>
@@ -448,6 +474,39 @@ export function WorkerMonitorPage() {
             />
           ))}
         </div>
+      )}
+
+      {showHidden && hiddenUsers.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Hidden Users</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {hiddenUsers.map((user: any) => (
+              <div key={user.id} className="card p-5 opacity-60 border border-dashed">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 font-bold text-sm">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-700 leading-tight">{user.name}</p>
+                    <p className="text-xs text-gray-400">{user.email}</p>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 capitalize">{user.role} · Hidden</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => unhideMutation.mutate(user.id)}
+                  disabled={unhideMutation.isPending}
+                  className="btn-secondary btn-sm w-full gap-1 text-xs text-green-700 hover:bg-green-50"
+                >
+                  <Eye size={11} /> Restore User
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showHidden && hiddenUsers.length === 0 && (
+        <div className="mt-8 card p-8 text-center text-gray-400 text-sm">No hidden users</div>
       )}
 
       <Modal isOpen={showAddUser} onClose={() => setShowAddUser(false)} title="Add New User">
