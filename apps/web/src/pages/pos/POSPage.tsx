@@ -4,7 +4,7 @@ import {
   Search, Plus, Minus, Trash2, ShoppingCart,
   Barcode, CheckCircle, X, ReceiptText, Tag,
   User, Phone, CreditCard, Banknote, Smartphone,
-  History, ChevronRight, Printer,
+  History, ChevronRight, Printer, PauseCircle, Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -25,6 +25,26 @@ interface CartItem {
   quantity: number;
   unit: string;
   currentStock: number;
+}
+
+interface HeldCart {
+  id: string;
+  label: string;
+  items: CartItem[];
+  discount: number;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: string;
+  savedAt: string;
+}
+
+const DRAFTS_KEY = 'pos-held-carts';
+
+function loadHeldCarts(): HeldCart[] {
+  try { return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'); } catch { return []; }
+}
+function saveHeldCarts(drafts: HeldCart[]) {
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
 }
 
 const PAYMENT_METHODS = [
@@ -615,6 +635,8 @@ export function POSPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState<number | ''>('');
+  const [heldCarts, setHeldCarts] = useState<HeldCart[]>(loadHeldCarts);
+  const [showDrafts, setShowDrafts] = useState(false);
 
   const barcodeRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -671,6 +693,47 @@ export function POSPage() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.productId !== productId));
+
+  const holdCart = () => {
+    if (cart.length === 0) return;
+    const label = customerName.trim() || `Customer ${heldCarts.length + 1}`;
+    const draft: HeldCart = {
+      id: Date.now().toString(),
+      label,
+      items: cart,
+      discount,
+      customerName,
+      customerPhone,
+      paymentMethod,
+      savedAt: new Date().toISOString(),
+    };
+    const updated = [...heldCarts, draft];
+    setHeldCarts(updated);
+    saveHeldCarts(updated);
+    setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setPaymentMethod('cash'); setAmountPaid('');
+    toast.success(`Cart held for ${label}`, { icon: '⏸️' });
+  };
+
+  const resumeDraft = (draft: HeldCart) => {
+    if (cart.length > 0 && !window.confirm('You have items in the current cart. Hold the current cart first or clear it. Resume anyway and lose current cart?')) return;
+    setCart(draft.items);
+    setDiscount(draft.discount);
+    setCustomerName(draft.customerName);
+    setCustomerPhone(draft.customerPhone);
+    setPaymentMethod(draft.paymentMethod);
+    setAmountPaid('');
+    const updated = heldCarts.filter((d) => d.id !== draft.id);
+    setHeldCarts(updated);
+    saveHeldCarts(updated);
+    setShowDrafts(false);
+    toast.success(`Resumed cart for ${draft.label}`, { icon: '▶️' });
+  };
+
+  const deleteDraft = (id: string) => {
+    const updated = heldCarts.filter((d) => d.id !== id);
+    setHeldCarts(updated);
+    saveHeldCarts(updated);
+  };
 
   const handleBarcodeScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
@@ -801,17 +864,33 @@ export function POSPage() {
 
       {/* Right — Cart */}
       <div className="w-80 xl:w-96 flex flex-col bg-white shrink-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShoppingCart size={16} className="text-brand-600" />
+        <div className="px-4 py-3 border-b border-gray-200 shrink-0 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <ShoppingCart size={16} className="text-brand-600 shrink-0" />
             <span className="font-bold text-gray-900 text-sm">Current Sale</span>
-            {totalItems > 0 && <span className="bg-brand-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>}
+            {totalItems > 0 && <span className="bg-brand-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shrink-0">{totalItems}</span>}
           </div>
-          {cart.length > 0 && (
-            <button onClick={() => { setCart([]); setDiscount(0); }} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1">
-              <X size={11} /> Clear
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {heldCarts.length > 0 && (
+              <button onClick={() => setShowDrafts(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg hover:bg-amber-100 transition-colors">
+                <Clock size={11} />
+                {heldCarts.length} held
+              </button>
+            )}
+            {cart.length > 0 && (
+              <button onClick={holdCart}
+                className="flex items-center gap-1 text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 px-2 py-1 rounded-lg hover:bg-brand-100 transition-colors">
+                <PauseCircle size={11} /> Hold
+              </button>
+            )}
+            {cart.length > 0 && (
+              <button onClick={() => { setCart([]); setDiscount(0); setCustomerName(''); setCustomerPhone(''); setAmountPaid(''); }}
+                className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1">
+                <X size={11} /> Clear
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -910,6 +989,60 @@ export function POSPage() {
 
       {completedSale && <ReceiptModal sale={completedSale} onClose={() => setCompletedSale(null)} />}
       {showHistory && <SaleHistoryPanel onClose={() => setShowHistory(false)} />}
+
+      {/* Held Carts Panel */}
+      {showDrafts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDrafts(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <PauseCircle size={18} className="text-amber-500" />
+                <h2 className="font-bold text-gray-900">Held Carts</h2>
+                <span className="bg-amber-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{heldCarts.length}</span>
+              </div>
+              <button onClick={() => setShowDrafts(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+              {heldCarts.length === 0 ? (
+                <p className="text-center text-gray-400 py-8 text-sm">No held carts</p>
+              ) : heldCarts.map((draft) => {
+                const draftTotal = draft.items.reduce((s, i) => s + i.price * i.quantity, 0) - draft.discount;
+                const draftItems = draft.items.reduce((s, i) => s + i.quantity, 0);
+                return (
+                  <div key={draft.id} className="border border-gray-200 rounded-xl p-4 hover:border-brand-300 transition-colors">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-bold text-gray-900">{draft.label}</p>
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock size={10} /> Held at {format(new Date(draft.savedAt), 'HH:mm')}
+                        </p>
+                      </div>
+                      <button onClick={() => deleteDraft(draft.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-3 space-y-0.5">
+                      {draft.items.slice(0, 3).map((item) => (
+                        <p key={item.productId} className="truncate">• {item.name} × {item.quantity}</p>
+                      ))}
+                      {draft.items.length > 3 && <p className="text-gray-400">+{draft.items.length - 3} more items</p>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400">{draftItems} items</p>
+                        <p className="font-bold text-brand-700">GH₵{draftTotal.toFixed(2)}</p>
+                      </div>
+                      <button onClick={() => resumeDraft(draft)}
+                        className="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-700 transition-colors">
+                        <ChevronRight size={14} /> Resume
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Item Modal */}
       {showAddItem && (
