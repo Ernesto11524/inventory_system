@@ -97,7 +97,7 @@ usersRouter.post('/', async (req: Request, res: Response, next) => {
 });
 
 // DELETE /api/users/:id
-usersRouter.delete('/:id', authenticate, async (req: Request, res: Response, next) => {
+usersRouter.delete('/:id', async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     if (!req.user) throw new Error('Not authenticated');

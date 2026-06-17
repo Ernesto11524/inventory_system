@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma/client';
 import { successResponse, NotFoundError } from '../utils/response';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
 import type { UserPermissions } from '@inventory/shared';
 
 export const permissionsRouter = Router();
 
-permissionsRouter.use(authenticate, requireAdmin);
+permissionsRouter.use(authenticate, requireManagerOrAdmin);
 
 permissionsRouter.get('/:userId', async (req: Request, res: Response, next) => {
   try {

@@ -15,21 +15,16 @@ interface PermissionsModalProps {
 
 export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess }: PermissionsModalProps) {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: queryError } = useQuery({
     queryKey: ['permissions', userId],
     queryFn: async () => {
-      try {
-        const response = await get<{ user: any; permissions: UserPermissions }>(`/permissions/${userId}`);
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to load permissions');
-        }
-        return response.data;
-      } catch (err: any) {
-        throw err;
+      const response = await get<{ user: any; permissions: UserPermissions }>(`/permissions/${userId}`);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load permissions');
       }
+      return response.data;
     },
     enabled: isOpen && !!userId,
     retry: 1,
@@ -38,14 +33,16 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
   useEffect(() => {
     if (data?.permissions) {
       setPermissions(data.permissions);
-      setError(null);
     }
   }, [data]);
 
+  // Resolve permissions: prefer local edited state, fall back to cached query data
+  const resolvedPermissions = permissions ?? (data?.permissions as UserPermissions ?? null);
+
   const mutation = useMutation({
     mutationFn: () => {
-      if (!permissions) throw new Error('No permissions data');
-      return patch(`/permissions/${userId}`, { permissions });
+      if (!resolvedPermissions) throw new Error('No permissions data');
+      return patch(`/permissions/${userId}`, { permissions: resolvedPermissions });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['permissions', userId] });
@@ -55,9 +52,7 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
       onClose();
     },
     onError: (err: any) => {
-      const message = err.response?.data?.message || err.message || 'Failed to update permissions';
-      toast.error(message);
-      setError(message);
+      toast.error(err.response?.data?.message || err.message || 'Failed to update permissions');
     },
   });
 
@@ -73,11 +68,14 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
     );
   }
 
-  if (!permissions || error) {
+  if (!resolvedPermissions || queryError) {
+    const errorMsg = (queryError as any)?.response?.data?.message
+      || (queryError as any)?.message
+      || 'Failed to load permissions';
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <p className="text-red-600 mb-4">{error || 'Failed to load permissions'}</p>
+          <p className="text-red-600 mb-4">{errorMsg}</p>
           <button onClick={onClose} className="btn-secondary">Close</button>
         </div>
       </div>
@@ -85,7 +83,7 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
   }
 
   const toggle = (path: string[], value: boolean) => {
-    const newPerms = JSON.parse(JSON.stringify(permissions));
+    const newPerms = JSON.parse(JSON.stringify(resolvedPermissions));
     let obj = newPerms;
     for (let i = 0; i < path.length - 1; i++) {
       obj = obj[path[i]];
@@ -135,9 +133,9 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               Sales & POS
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="Make Sales" path={['sales', 'makeSales']} checked={permissions.sales.makeSales} />
-              <PermissionToggle label="View Own Sales" path={['sales', 'viewOwnSales']} checked={permissions.sales.viewOwnSales} />
-              <PermissionToggle label="View All Reports" path={['sales', 'viewAllReports']} checked={permissions.sales.viewAllReports} />
+              <PermissionToggle label="Make Sales" path={['sales', 'makeSales']} checked={resolvedPermissions.sales.makeSales} />
+              <PermissionToggle label="View Own Sales" path={['sales', 'viewOwnSales']} checked={resolvedPermissions.sales.viewOwnSales} />
+              <PermissionToggle label="View All Reports" path={['sales', 'viewAllReports']} checked={resolvedPermissions.sales.viewAllReports} />
             </div>
           </div>
 
@@ -148,9 +146,9 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               Inventory & Stock
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="Add Stock" path={['inventory', 'addStock']} checked={permissions.inventory.addStock} />
-              <PermissionToggle label="Remove Stock" path={['inventory', 'removeStock']} checked={permissions.inventory.removeStock} />
-              <PermissionToggle label="View Inventory" path={['inventory', 'viewInventory']} checked={permissions.inventory.viewInventory} />
+              <PermissionToggle label="Add Stock" path={['inventory', 'addStock']} checked={resolvedPermissions.inventory.addStock} />
+              <PermissionToggle label="Remove Stock" path={['inventory', 'removeStock']} checked={resolvedPermissions.inventory.removeStock} />
+              <PermissionToggle label="View Inventory" path={['inventory', 'viewInventory']} checked={resolvedPermissions.inventory.viewInventory} />
             </div>
           </div>
 
@@ -161,8 +159,8 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               Day Sessions
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="Open/Close Day" path={['daySessions', 'openClose']} checked={permissions.daySessions.openClose} />
-              <PermissionToggle label="View Sessions" path={['daySessions', 'viewSessions']} checked={permissions.daySessions.viewSessions} />
+              <PermissionToggle label="Open/Close Day" path={['daySessions', 'openClose']} checked={resolvedPermissions.daySessions.openClose} />
+              <PermissionToggle label="View Sessions" path={['daySessions', 'viewSessions']} checked={resolvedPermissions.daySessions.viewSessions} />
             </div>
           </div>
 
@@ -173,10 +171,10 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               Products
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="Create Products" path={['products', 'create']} checked={permissions.products.create} />
-              <PermissionToggle label="Edit Products" path={['products', 'edit']} checked={permissions.products.edit} />
-              <PermissionToggle label="Delete Products" path={['products', 'delete']} checked={permissions.products.delete} />
-              <PermissionToggle label="View Products" path={['products', 'view']} checked={permissions.products.view} />
+              <PermissionToggle label="Create Products" path={['products', 'create']} checked={resolvedPermissions.products.create} />
+              <PermissionToggle label="Edit Products" path={['products', 'edit']} checked={resolvedPermissions.products.edit} />
+              <PermissionToggle label="Delete Products" path={['products', 'delete']} checked={resolvedPermissions.products.delete} />
+              <PermissionToggle label="View Products" path={['products', 'view']} checked={resolvedPermissions.products.view} />
             </div>
           </div>
 
@@ -187,8 +185,8 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               Monitoring & Reports
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="View Worker Activity" path={['monitoring', 'viewWorkerActivity']} checked={permissions.monitoring.viewWorkerActivity} />
-              <PermissionToggle label="View Sales Reports" path={['monitoring', 'viewSalesReports']} checked={permissions.monitoring.viewSalesReports} />
+              <PermissionToggle label="View Worker Activity" path={['monitoring', 'viewWorkerActivity']} checked={resolvedPermissions.monitoring.viewWorkerActivity} />
+              <PermissionToggle label="View Sales Reports" path={['monitoring', 'viewSalesReports']} checked={resolvedPermissions.monitoring.viewSalesReports} />
             </div>
           </div>
 
@@ -199,7 +197,7 @@ export function PermissionsModal({ userId, userName, isOpen, onClose, onSuccess 
               User Management
             </h3>
             <div className="space-y-1 ml-4">
-              <PermissionToggle label="Manage Other Users" path={['users', 'manageOthers']} checked={permissions.users.manageOthers} />
+              <PermissionToggle label="Manage Other Users" path={['users', 'manageOthers']} checked={resolvedPermissions.users.manageOthers} />
             </div>
           </div>
         </div>
