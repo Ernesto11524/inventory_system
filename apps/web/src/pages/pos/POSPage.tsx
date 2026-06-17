@@ -133,32 +133,39 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
         <meta charset="UTF-8">
         <title>Receipt ${sale.receiptNo}</title>
         <style>
-          * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-          body { font-family: monospace; font-size: 12px; width: 80mm; color: #000; }
-          .receipt { padding: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .store-name { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #000; }
-          .receipt-no { font-weight: bold; margin: 5px 0; color: #000; }
-          .date { font-size: 11px; color: #000; }
-          .customer { margin: 15px 0; padding: 10px; border: 1px dashed #444; color: #000; }
-          .items { margin: 15px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
-          .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
-          .item-name { font-weight: bold; color: #000; }
-          .item-qty { color: #000; font-size: 10px; }
-          .totals { margin-top: 15px; }
-          .total-row { display: flex; justify-content: space-between; margin: 5px 0; color: #000; }
-          .total-amount { font-weight: bold; font-size: 14px; color: #000; }
-          .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #000; }
-          .divider { border-top: 1px dashed #444; margin: 10px 0; }
-          @media print { * { color: #000 !important; } }
+          * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; color: #000; }
+          body { font-family: monospace; font-size: 13px; width: 80mm; color: #000; font-weight: bold; }
+          .receipt { padding: 16px; }
+          .header { text-align: center; margin-bottom: 14px; }
+          .company-name { font-size: 20px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #000; margin-bottom: 4px; line-height: 1.2; }
+          .company-address { font-size: 12px; font-weight: bold; color: #000; margin-bottom: 10px; line-height: 1.5; }
+          .header-divider { border-top: 2px solid #000; margin: 8px 0; }
+          .receipt-no { font-weight: bold; font-size: 13px; margin: 5px 0; color: #000; }
+          .date { font-size: 12px; font-weight: bold; color: #000; }
+          .customer { margin: 12px 0; padding: 8px; border: 1px dashed #444; color: #000; font-size: 12px; }
+          .items { margin: 12px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
+          .item { display: flex; justify-content: space-between; align-items: flex-start; margin: 8px 0; font-size: 12px; }
+          .item-name { font-weight: bold; color: #000; font-size: 13px; }
+          .item-qty { color: #000; font-size: 12px; font-weight: bold; margin-top: 2px; }
+          .item-amount { font-weight: bold; color: #000; font-size: 13px; }
+          .totals { margin-top: 12px; }
+          .total-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; font-weight: bold; color: #000; }
+          .total-amount { font-weight: 900; font-size: 16px; color: #000; margin: 4px 0; }
+          .divider { border-top: 1px dashed #444; margin: 8px 0; }
+          .footer { text-align: center; margin-top: 18px; border-top: 2px solid #000; padding-top: 10px; }
+          .footer p { font-size: 13px; font-weight: bold; color: #000; margin: 4px 0; line-height: 1.6; }
+          .footer .tagline { font-size: 12px; font-weight: bold; color: #000; margin-top: 6px; }
+          @media print { * { color: #000 !important; font-weight: bold; } }
         </style>
       </head>
       <body>
         <div class="receipt">
           <div class="header">
-            ${storeName ? `<div class="store-name">${storeName}</div>` : ''}
+            <div class="company-name">Banksplus Mart</div>
+            <div class="company-address">Cindy, Kumasi, Ashanti Region<br/>W463, Ghana</div>
+            <div class="header-divider"></div>
             <div class="receipt-no">Receipt: ${sale.receiptNo}</div>
-            <div class="date">${format(new Date(sale.createdAt), 'MMM d, yyyy HH:mm')}</div>
+            <div class="date">${format(new Date(sale.createdAt), 'MMM d, yyyy  HH:mm')}</div>
           </div>
 
           ${sale.customerName ? `
@@ -173,9 +180,9 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <div class="item">
                 <div>
                   <div class="item-name">${item.product?.name}</div>
-                  <div class="item-qty">${item.quantity} × GH₵${Number(item.unitPrice).toFixed(2)}</div>
+                  <div class="item-qty">${item.quantity} x GH&#8373;${Number(item.unitPrice).toFixed(2)}</div>
                 </div>
-                <div class="item-amount"><strong>GH₵${Number(item.subtotal).toFixed(2)}</strong></div>
+                <div class="item-amount">GH&#8373;${Number(item.subtotal).toFixed(2)}</div>
               </div>
             `).join('')}
           </div>
@@ -183,10 +190,10 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
           <div class="totals">
             <div class="total-row">
               <span>Subtotal</span>
-              <span>GH₵${Number(sale.subtotal).toFixed(2)}</span>
+              <span>GH&#8373;${Number(sale.subtotal).toFixed(2)}</span>
             </div>
             ${sale.discount > 0 ? `
-              <div class="total-row" style="color: #000; font-weight: bold;">
+              <div class="total-row">
                 <span>Discount</span>
                 <span>-GH&#8373;${Number(sale.discount).toFixed(2)}</span>
               </div>
@@ -194,14 +201,14 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
             <div class="divider"></div>
             <div class="total-row total-amount">
               <span>TOTAL</span>
-              <span>GH₵${Number(sale.total).toFixed(2)}</span>
+              <span>GH&#8373;${Number(sale.total).toFixed(2)}</span>
             </div>
             <div class="total-row">
               <span>Payment (${sale.paymentMethod === 'paystack' ? 'Card/Bank' : sale.paymentMethod === 'momo' ? 'Mobile Money' : sale.paymentMethod})</span>
-              <span>GH₵${Number(sale.amountPaid).toFixed(2)}</span>
+              <span>GH&#8373;${Number(sale.amountPaid).toFixed(2)}</span>
             </div>
             ${sale.change > 0 ? `
-              <div class="total-row" style="color: #000; font-weight: bold;">
+              <div class="total-row">
                 <span>Change</span>
                 <span>GH&#8373;${Number(sale.change).toFixed(2)}</span>
               </div>
@@ -210,7 +217,8 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
 
           <div class="footer">
             <p>Thank you for your purchase!</p>
-            <p style="margin-top: 10px;">StockFlow • Inventory System</p>
+            <p>Served by: ${sale.cashier?.name || 'Cashier'}</p>
+            <p class="tagline">** Banksplus Mart **</p>
           </div>
         </div>
         <script>
@@ -488,30 +496,39 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                       <meta charset="UTF-8">
                       <title>Receipt ${reprinting.receiptNo}</title>
                       <style>
-                        * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-                        body { font-family: monospace; font-size: 12px; width: 80mm; color: #000; }
-                        .receipt { padding: 20px; }
-                        .header { text-align: center; margin-bottom: 20px; }
-                        .receipt-no { font-weight: bold; margin: 5px 0; color: #000; }
-                        .date { font-size: 11px; color: #000; }
-                        .customer { margin: 15px 0; padding: 10px; border: 1px dashed #444; color: #000; }
-                        .items { margin: 15px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
-                        .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
-                        .item-name { font-weight: bold; color: #000; }
-                        .item-qty { color: #000; font-size: 10px; }
-                        .totals { margin-top: 15px; }
-                        .total-row { display: flex; justify-content: space-between; margin: 5px 0; color: #000; }
-                        .total-amount { font-weight: bold; font-size: 14px; color: #000; }
-                        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #000; }
-                        .divider { border-top: 1px dashed #444; margin: 10px 0; }
-                        @media print { * { color: #000 !important; } }
+                        * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; color: #000; }
+                        body { font-family: monospace; font-size: 13px; width: 80mm; color: #000; font-weight: bold; }
+                        .receipt { padding: 16px; }
+                        .header { text-align: center; margin-bottom: 14px; }
+                        .company-name { font-size: 20px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #000; margin-bottom: 4px; line-height: 1.2; }
+                        .company-address { font-size: 12px; font-weight: bold; color: #000; margin-bottom: 10px; line-height: 1.5; }
+                        .header-divider { border-top: 2px solid #000; margin: 8px 0; }
+                        .receipt-no { font-weight: bold; font-size: 13px; margin: 5px 0; color: #000; }
+                        .date { font-size: 12px; font-weight: bold; color: #000; }
+                        .customer { margin: 12px 0; padding: 8px; border: 1px dashed #444; color: #000; font-size: 12px; }
+                        .items { margin: 12px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
+                        .item { display: flex; justify-content: space-between; align-items: flex-start; margin: 8px 0; font-size: 12px; }
+                        .item-name { font-weight: bold; color: #000; font-size: 13px; }
+                        .item-qty { color: #000; font-size: 12px; font-weight: bold; margin-top: 2px; }
+                        .item-amount { font-weight: bold; color: #000; font-size: 13px; }
+                        .totals { margin-top: 12px; }
+                        .total-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; font-weight: bold; color: #000; }
+                        .total-amount { font-weight: 900; font-size: 16px; color: #000; margin: 4px 0; }
+                        .divider { border-top: 1px dashed #444; margin: 8px 0; }
+                        .footer { text-align: center; margin-top: 18px; border-top: 2px solid #000; padding-top: 10px; }
+                        .footer p { font-size: 13px; font-weight: bold; color: #000; margin: 4px 0; line-height: 1.6; }
+                        .footer .tagline { font-size: 12px; font-weight: bold; color: #000; margin-top: 6px; }
+                        @media print { * { color: #000 !important; font-weight: bold; } }
                       </style>
                     </head>
                     <body>
                       <div class="receipt">
                         <div class="header">
+                          <div class="company-name">Banksplus Mart</div>
+                          <div class="company-address">Cindy, Kumasi, Ashanti Region<br/>W463, Ghana</div>
+                          <div class="header-divider"></div>
                           <div class="receipt-no">Receipt: ${reprinting.receiptNo}</div>
-                          <div class="date">${format(new Date(reprinting.createdAt), 'MMM d, yyyy HH:mm')}</div>
+                          <div class="date">${format(new Date(reprinting.createdAt), 'MMM d, yyyy  HH:mm')}</div>
                         </div>
                         ${reprinting.customerName ? `
                           <div class="customer">
@@ -524,19 +541,19 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                             <div class="item">
                               <div>
                                 <div class="item-name">${item.product?.name}</div>
-                                <div class="item-qty">${item.quantity} × GH₵${Number(item.unitPrice).toFixed(2)}</div>
+                                <div class="item-qty">${item.quantity} x GH&#8373;${Number(item.unitPrice).toFixed(2)}</div>
                               </div>
-                              <div class="item-amount"><strong>GH₵${Number(item.subtotal).toFixed(2)}</strong></div>
+                              <div class="item-amount">GH&#8373;${Number(item.subtotal).toFixed(2)}</div>
                             </div>
                           `).join('')}
                         </div>
                         <div class="totals">
                           <div class="total-row">
                             <span>Subtotal</span>
-                            <span>GH₵${Number(reprinting.subtotal).toFixed(2)}</span>
+                            <span>GH&#8373;${Number(reprinting.subtotal).toFixed(2)}</span>
                           </div>
                           ${reprinting.discount > 0 ? `
-                            <div class="total-row" style="color: #000; font-weight: bold;">
+                            <div class="total-row">
                               <span>Discount</span>
                               <span>-GH&#8373;${Number(reprinting.discount).toFixed(2)}</span>
                             </div>
@@ -544,14 +561,14 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                           <div class="divider"></div>
                           <div class="total-row total-amount">
                             <span>TOTAL</span>
-                            <span>GH₵${Number(reprinting.total).toFixed(2)}</span>
+                            <span>GH&#8373;${Number(reprinting.total).toFixed(2)}</span>
                           </div>
                           <div class="total-row">
                             <span>Payment (${reprinting.paymentMethod === 'paystack' ? 'Card/Bank' : reprinting.paymentMethod === 'momo' ? 'Mobile Money' : reprinting.paymentMethod})</span>
-                            <span>GH₵${Number(reprinting.amountPaid).toFixed(2)}</span>
+                            <span>GH&#8373;${Number(reprinting.amountPaid).toFixed(2)}</span>
                           </div>
                           ${reprinting.change > 0 ? `
-                            <div class="total-row" style="color: #000; font-weight: bold;">
+                            <div class="total-row">
                               <span>Change</span>
                               <span>GH&#8373;${Number(reprinting.change).toFixed(2)}</span>
                             </div>
@@ -560,7 +577,7 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                         <div class="footer">
                           <p>Thank you for your purchase!</p>
                           <p>Served by: ${reprinting.cashier?.name}</p>
-                          <p style="margin-top: 10px;">StockFlow • Inventory System</p>
+                          <p class="tagline">** Banksplus Mart **</p>
                         </div>
                       </div>
                       <script>
