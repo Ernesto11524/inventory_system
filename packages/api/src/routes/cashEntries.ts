@@ -59,6 +59,14 @@ cashEntriesRouter.get('/', async (req: Request, res: Response, next) => {
 // DELETE /api/cash-entries/:id
 cashEntriesRouter.delete('/:id', async (req: Request, res: Response, next) => {
   try {
+    const entry = await prisma.cashEntry.findUnique({
+      where: { id: req.params.id },
+      include: { daySession: { select: { status: true } } },
+    });
+    if (!entry) throw new NotFoundError('Cash entry');
+    if (entry.daySession.status !== 'open') {
+      return res.status(400).json({ success: false, message: 'Cannot delete entries from a closed session' });
+    }
     await prisma.cashEntry.delete({ where: { id: req.params.id } });
     successResponse(res, null, 'Cash entry deleted');
   } catch (err) {

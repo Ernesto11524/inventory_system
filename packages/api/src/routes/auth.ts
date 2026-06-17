@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { addDays, addHours } from 'date-fns';
+import { addHours } from 'date-fns';
 import prisma from '../prisma/client';
 import { logActivity } from '../utils/activityLog';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
@@ -132,7 +132,6 @@ authRouter.post('/refresh', validate(refreshTokenSchema), async (req: Request, r
  */
 authRouter.post('/logout', authenticate, async (req: Request, res: Response, next) => {
   try {
-    const authHeader = req.headers.authorization;
     const refreshToken = req.body.refreshToken;
 
     if (refreshToken) {
@@ -212,8 +211,9 @@ authRouter.post('/forgot-password', async (req: Request, res: Response, next) =>
       }
     }
 
-    // No SMTP configured — return the reset URL directly (admin app, trusted environment)
-    successResponse(res, { resetUrl, expiresAt: expiry }, 'Password reset link generated (no email configured)');
+    // No SMTP configured — log the URL server-side so admin can find it in PM2 logs
+    console.log(`[PASSWORD RESET] No SMTP configured. Reset URL for ${email}: ${resetUrl}`);
+    successResponse(res, null, 'If that email exists, a reset link has been sent');
   } catch (err) {
     next(err);
   }

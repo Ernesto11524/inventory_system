@@ -14,7 +14,7 @@ export const salesRouter = Router();
 salesRouter.use(authenticate);
 
 // POST /api/sales - Create a new sale
-salesRouter.post('/', authenticate, async (req: Request, res: Response, next) => {
+salesRouter.post('/', async (req: Request, res: Response, next) => {
   try {
     const {
       items, customerName, customerPhone, paymentMethod,

@@ -315,9 +315,13 @@ reportsRouter.get('/sales', async (req: Request, res: Response, next) => {
   const dailyBreakdown = Object.values(dateMap)
     .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
-  // StockEntry records for the "All Transactions" list — matches what the frontend template expects
+  // StockEntry records for the "All Transactions" list — uses its own date-only where clause
+  const stockEntryWhere: any = {
+    ...(from ? { createdAt: { gte: new Date(String(from)) } } : {}),
+    ...(to ? { createdAt: { lte: new Date(toStr.includes('T') ? toStr : toStr + 'T23:59:59') } } : {}),
+  };
   const transactions = await prisma.stockEntry.findMany({
-    where,
+    where: stockEntryWhere,
     include: {
       product: { select: { id: true, name: true, sku: true, price: true, costPrice: true } },
       performer: { select: { id: true, name: true } },
