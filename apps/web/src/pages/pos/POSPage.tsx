@@ -133,23 +133,24 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
         <meta charset="UTF-8">
         <title>Receipt ${sale.receiptNo}</title>
         <style>
-          * { margin: 0; padding: 0; }
-          body { font-family: monospace; font-size: 12px; width: 80mm; }
+          * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+          body { font-family: monospace; font-size: 12px; width: 80mm; color: #000; }
           .receipt { padding: 20px; }
           .header { text-align: center; margin-bottom: 20px; }
-          .store-name { font-weight: bold; font-size: 14px; margin-bottom: 8px; }
-          .receipt-no { font-weight: bold; margin: 5px 0; }
-          .date { font-size: 11px; color: #666; }
-          .customer { margin: 15px 0; padding: 10px; border: 1px dashed #ccc; }
-          .items { margin: 15px 0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; }
+          .store-name { font-weight: bold; font-size: 15px; margin-bottom: 8px; color: #000; }
+          .receipt-no { font-weight: bold; margin: 5px 0; color: #000; }
+          .date { font-size: 11px; color: #000; }
+          .customer { margin: 15px 0; padding: 10px; border: 1px dashed #444; color: #000; }
+          .items { margin: 15px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
           .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
-          .item-name { font-weight: bold; }
-          .item-qty { color: #666; font-size: 10px; }
+          .item-name { font-weight: bold; color: #000; }
+          .item-qty { color: #000; font-size: 10px; }
           .totals { margin-top: 15px; }
-          .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
-          .total-amount { font-weight: bold; font-size: 14px; }
-          .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
-          .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+          .total-row { display: flex; justify-content: space-between; margin: 5px 0; color: #000; }
+          .total-amount { font-weight: bold; font-size: 14px; color: #000; }
+          .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #000; }
+          .divider { border-top: 1px dashed #444; margin: 10px 0; }
+          @media print { * { color: #000 !important; } }
         </style>
       </head>
       <body>
@@ -185,9 +186,9 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span>GH₵${Number(sale.subtotal).toFixed(2)}</span>
             </div>
             ${sale.discount > 0 ? `
-              <div class="total-row" style="color: green;">
+              <div class="total-row" style="color: #000; font-weight: bold;">
                 <span>Discount</span>
-                <span>-GH₵${Number(sale.discount).toFixed(2)}</span>
+                <span>-GH&#8373;${Number(sale.discount).toFixed(2)}</span>
               </div>
             ` : ''}
             <div class="divider"></div>
@@ -200,9 +201,9 @@ function ReceiptModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span>GH₵${Number(sale.amountPaid).toFixed(2)}</span>
             </div>
             ${sale.change > 0 ? `
-              <div class="total-row" style="color: green; font-weight: bold;">
+              <div class="total-row" style="color: #000; font-weight: bold;">
                 <span>Change</span>
-                <span>GH₵${Number(sale.change).toFixed(2)}</span>
+                <span>GH&#8373;${Number(sale.change).toFixed(2)}</span>
               </div>
             ` : ''}
           </div>
@@ -487,22 +488,23 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                       <meta charset="UTF-8">
                       <title>Receipt ${reprinting.receiptNo}</title>
                       <style>
-                        * { margin: 0; padding: 0; }
-                        body { font-family: monospace; font-size: 12px; width: 80mm; }
+                        * { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+                        body { font-family: monospace; font-size: 12px; width: 80mm; color: #000; }
                         .receipt { padding: 20px; }
                         .header { text-align: center; margin-bottom: 20px; }
-                        .receipt-no { font-weight: bold; margin: 5px 0; }
-                        .date { font-size: 11px; color: #666; }
-                        .customer { margin: 15px 0; padding: 10px; border: 1px dashed #ccc; }
-                        .items { margin: 15px 0; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; }
+                        .receipt-no { font-weight: bold; margin: 5px 0; color: #000; }
+                        .date { font-size: 11px; color: #000; }
+                        .customer { margin: 15px 0; padding: 10px; border: 1px dashed #444; color: #000; }
+                        .items { margin: 15px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 10px 0; }
                         .item { display: flex; justify-content: space-between; margin: 8px 0; font-size: 11px; }
-                        .item-name { font-weight: bold; }
-                        .item-qty { color: #666; font-size: 10px; }
+                        .item-name { font-weight: bold; color: #000; }
+                        .item-qty { color: #000; font-size: 10px; }
                         .totals { margin-top: 15px; }
-                        .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
-                        .total-amount { font-weight: bold; font-size: 14px; }
-                        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
-                        .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+                        .total-row { display: flex; justify-content: space-between; margin: 5px 0; color: #000; }
+                        .total-amount { font-weight: bold; font-size: 14px; color: #000; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #000; }
+                        .divider { border-top: 1px dashed #444; margin: 10px 0; }
+                        @media print { * { color: #000 !important; } }
                       </style>
                     </head>
                     <body>
@@ -534,9 +536,9 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                             <span>GH₵${Number(reprinting.subtotal).toFixed(2)}</span>
                           </div>
                           ${reprinting.discount > 0 ? `
-                            <div class="total-row" style="color: green;">
+                            <div class="total-row" style="color: #000; font-weight: bold;">
                               <span>Discount</span>
-                              <span>-GH₵${Number(reprinting.discount).toFixed(2)}</span>
+                              <span>-GH&#8373;${Number(reprinting.discount).toFixed(2)}</span>
                             </div>
                           ` : ''}
                           <div class="divider"></div>
@@ -549,9 +551,9 @@ function SaleHistoryPanel({ onClose }: { onClose: () => void }) {
                             <span>GH₵${Number(reprinting.amountPaid).toFixed(2)}</span>
                           </div>
                           ${reprinting.change > 0 ? `
-                            <div class="total-row" style="color: green; font-weight: bold;">
+                            <div class="total-row" style="color: #000; font-weight: bold;">
                               <span>Change</span>
-                              <span>GH₵${Number(reprinting.change).toFixed(2)}</span>
+                              <span>GH&#8373;${Number(reprinting.change).toFixed(2)}</span>
                             </div>
                           ` : ''}
                         </div>
