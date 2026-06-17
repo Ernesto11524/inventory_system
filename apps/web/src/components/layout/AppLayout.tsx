@@ -13,20 +13,21 @@ import { get } from '../../utils/api';
 import clsx from 'clsx';
 
 // roles: undefined = all, 'admin' = admin only, 'manager' = admin+manager
+// perm: dot-path into user.permissions — shown if permission is true (overrides role check)
 const allNavItems = [
-  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard',        roles: undefined },
-  { to: '/pos',        icon: Monitor,         label: 'Point of Sale',    roles: undefined },
-  { to: '/products',   icon: Package,         label: 'Products',         roles: undefined },
-  { to: '/inventory',  icon: Warehouse,       label: 'Inventory',        roles: undefined },
-  { to: '/alerts',     icon: Bell,            label: 'Alerts',           badge: true, roles: undefined },
-  { to: '/suppliers',  icon: Truck,           label: 'Suppliers',        roles: undefined },
-  { to: '/day',        icon: CalendarDays,    label: 'Day Sessions',     roles: 'manager' as const },
-  { to: '/categories', icon: Tag,             label: 'Categories',       roles: 'admin' as const },
-  { to: '/orders',     icon: ShoppingCart,    label: 'Purchase Orders',  roles: 'admin' as const },
-  { to: '/reports',    icon: BarChart3,       label: 'Reports',          roles: 'admin' as const },
-  { to: '/sales',      icon: TrendingUp,      label: 'Sales Report',     roles: 'admin' as const },
-  { to: '/workers',    icon: UserCheck,       label: 'Worker Monitor',   roles: 'admin' as const },
-  { to: '/settings',   icon: Settings,        label: 'Settings',         roles: 'admin' as const },
+  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard',        roles: undefined,           perm: undefined },
+  { to: '/pos',        icon: Monitor,         label: 'Point of Sale',    roles: undefined,           perm: undefined },
+  { to: '/products',   icon: Package,         label: 'Products',         roles: undefined,           perm: undefined },
+  { to: '/inventory',  icon: Warehouse,       label: 'Inventory',        roles: undefined,           perm: undefined },
+  { to: '/alerts',     icon: Bell,            label: 'Alerts',           badge: true, roles: undefined, perm: undefined },
+  { to: '/suppliers',  icon: Truck,           label: 'Suppliers',        roles: undefined,           perm: undefined },
+  { to: '/day',        icon: CalendarDays,    label: 'Day Sessions',     roles: 'manager' as const,  perm: 'daySessions.viewSessions' },
+  { to: '/categories', icon: Tag,             label: 'Categories',       roles: 'admin' as const,    perm: undefined },
+  { to: '/orders',     icon: ShoppingCart,    label: 'Purchase Orders',  roles: 'admin' as const,    perm: undefined },
+  { to: '/reports',    icon: BarChart3,       label: 'Reports',          roles: 'admin' as const,    perm: undefined },
+  { to: '/sales',      icon: TrendingUp,      label: 'Sales Report',     roles: 'admin' as const,    perm: undefined },
+  { to: '/workers',    icon: UserCheck,       label: 'Worker Monitor',   roles: 'admin' as const,    perm: undefined },
+  { to: '/settings',   icon: Settings,        label: 'Settings',         roles: 'admin' as const,    perm: undefined },
 ];
 
 export function AppLayout() {
@@ -70,10 +71,21 @@ export function AppLayout() {
   const unresolvedCount = alertCount?.data?.count ?? 0;
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
+
+  const hasPermission = (permPath: string): boolean => {
+    const parts = permPath.split('.');
+    let val: any = user?.permissions;
+    for (const part of parts) val = val?.[part];
+    return !!val;
+  };
+
   const navItems = allNavItems.filter(item => {
     if (!item.roles) return true;
     if (item.roles === 'admin') return isAdmin;
-    if (item.roles === 'manager') return isAdmin || isManager;
+    if (item.roles === 'manager') {
+      // Show if role qualifies OR if the user has the specific permission
+      return isAdmin || isManager || (item.perm ? hasPermission(item.perm) : false);
+    }
     return false;
   });
 

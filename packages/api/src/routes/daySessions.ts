@@ -2,14 +2,17 @@ import { Router, Request, Response } from 'express';
 import { format } from 'date-fns';
 import prisma from '../prisma/client';
 import { successResponse, buildPagination, NotFoundError, ConflictError } from '../utils/response';
-import { authenticate, requireManagerOrAdmin } from '../middleware/auth';
+import { authenticate, requirePermission } from '../middleware/auth';
 
 export const daySessionsRouter = Router();
 
-daySessionsRouter.use(authenticate, requireManagerOrAdmin);
+daySessionsRouter.use(authenticate);
+
+const canView  = requirePermission('daySessions.viewSessions');
+const canWrite = requirePermission('daySessions.openClose');
 
 // GET /api/day-sessions/today
-daySessionsRouter.get('/today', async (_req: Request, res: Response, next) => {
+daySessionsRouter.get('/today', canView, async (_req: Request, res: Response, next) => {
   try {
   const today = format(new Date(), 'yyyy-MM-dd');
   const session = await prisma.daySession.findUnique({
@@ -26,7 +29,7 @@ daySessionsRouter.get('/today', async (_req: Request, res: Response, next) => {
 });
 
 // GET /api/day-sessions — list all sessions (paged)
-daySessionsRouter.get('/', async (req: Request, res: Response, next) => {
+daySessionsRouter.get('/', canView, async (req: Request, res: Response, next) => {
   try {
   const { page = 1, limit = 30 } = req.query;
   const pageNum = Number(page);
@@ -53,7 +56,7 @@ daySessionsRouter.get('/', async (req: Request, res: Response, next) => {
 });
 
 // GET /api/day-sessions/:id — single session with activity
-daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
+daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
     const session = await prisma.daySession.findUnique({
@@ -124,7 +127,7 @@ daySessionsRouter.get('/:id', async (req: Request, res: Response, next) => {
 });
 
 // POST /api/day-sessions — open today
-daySessionsRouter.post('/', async (req: Request, res: Response, next) => {
+daySessionsRouter.post('/', canWrite, async (req: Request, res: Response, next) => {
   try {
   const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -150,7 +153,7 @@ daySessionsRouter.post('/', async (req: Request, res: Response, next) => {
 });
 
 // PATCH /api/day-sessions/:id/close — close a session
-daySessionsRouter.patch('/:id/close', async (req: Request, res: Response, next) => {
+daySessionsRouter.patch('/:id/close', canWrite, async (req: Request, res: Response, next) => {
   try {
   const { id } = req.params;
   const { notes, physicalCash, changeGiven, momoTotal } = req.body;
@@ -209,7 +212,7 @@ daySessionsRouter.patch('/:id/close', async (req: Request, res: Response, next) 
 });
 
 // PATCH /api/day-sessions/:id/reopen — reopen a closed session
-daySessionsRouter.patch('/:id/reopen', async (req: Request, res: Response, next) => {
+daySessionsRouter.patch('/:id/reopen', canWrite, async (req: Request, res: Response, next) => {
   try {
     const { id } = req.params;
 

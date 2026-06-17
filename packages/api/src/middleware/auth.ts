@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, JwtPayload } from '../utils/jwt';
 import { UnauthorizedError, ForbiddenError } from '../utils/response';
+import prisma from '../prisma/client';
 
 // Extend Request to include user
 declare global {
@@ -61,5 +62,28 @@ export function requireRole(...roles: string[]) {
       throw new ForbiddenError();
     }
     next();
+  };
+}
+
+// Check a dot-path permission (e.g. 'daySessions.viewSessions') from the DB.
+// Admins and managers always pass. Staff must have the specific permission enabled.
+// Reads from DB so permission changes take effect immediately without re-login.
+export function requirePermission(permPath: string) {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) { next(new UnauthorizedError()); return; }
+    if (req.user.role === 'admin' || req.user.role === 'manager') { next(); return; }
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { permissions: true },
+      });
+      const parts = permPath.split('.');
+      let val: any = user?.permissions;
+      for (const part of parts) val = val?.[part];
+      if (!val) { next(new ForbiddenError('You do not have permission to do this')); return; }
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 }

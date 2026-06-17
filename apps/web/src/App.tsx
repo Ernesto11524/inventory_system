@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSocketStore } from './store/socketStore';
+import { get } from './utils/api';
 
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -30,7 +31,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setUser } = useAuthStore();
   const { connect, disconnect } = useSocketStore();
 
   useEffect(() => {
@@ -40,6 +41,25 @@ export default function App() {
       disconnect();
     }
     // Don't disconnect on cleanup — only disconnect when logging out
+  }, [isAuthenticated]);
+
+  // Sync latest permissions from DB on load and when switching back to the tab.
+  // Permissions are stored in the JWT at login time; this keeps them up to date
+  // without requiring a re-login when an admin changes them.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const syncUser = () => {
+      get<any>('/auth/me')
+        .then((res) => { if (res.data) setUser(res.data); })
+        .catch(() => {});
+    };
+
+    syncUser();
+
+    const onVisible = () => { if (document.visibilityState === 'visible') syncUser(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [isAuthenticated]);
 
   return (
