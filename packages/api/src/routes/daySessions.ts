@@ -70,7 +70,9 @@ daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next)
 
     const endTime = session.closedAt ?? new Date();
 
-    const [activityLogs, salesSummary, paymentBreakdown, cashEntries] = await Promise.all([
+    const sessionWhere = { createdAt: { gte: session.openedAt, lte: endTime } };
+
+    const [activityLogs, salesSummary, paymentBreakdown, splitSales, cashEntries] = await Promise.all([
       prisma.activityLog.findMany({
         where: { createdAt: { gte: session.openedAt, lte: endTime } },
         include: { user: { select: { id: true, name: true, role: true } } },
@@ -78,15 +80,20 @@ daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next)
         take: 200,
       }),
       prisma.sale.aggregate({
-        where: { createdAt: { gte: session.openedAt, lte: endTime } },
+        where: sessionWhere,
         _sum: { total: true },
         _count: { id: true },
       }),
       prisma.sale.groupBy({
         by: ['paymentMethod'],
-        where: { createdAt: { gte: session.openedAt, lte: endTime } },
+        where: { ...sessionWhere, paymentMethod: { not: 'split' } },
         _sum: { total: true },
         _count: { id: true },
+      }),
+      // Fetch split sales separately so we can distribute their amounts
+      prisma.sale.findMany({
+        where: { ...sessionWhere, paymentMethod: 'split' },
+        select: { splitPayments: true, total: true },
       }),
       prisma.cashEntry.findMany({
         where: { daySessionId: id },
@@ -97,12 +104,30 @@ daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next)
 
     const totalRevenue = Number(salesSummary._sum.total ?? 0);
     const byPaymentMethod: Record<string, { total: number; count: number }> = {};
+
+    // Build breakdown from non-split sales
     for (const row of paymentBreakdown) {
       byPaymentMethod[row.paymentMethod] = {
         total: Number(row._sum.total ?? 0),
         count: row._count.id,
       };
     }
+
+    // Distribute split sale amounts into their component methods
+    for (const sale of splitSales) {
+      const parts = (sale.splitPayments as any[]) ?? [];
+      for (const part of parts) {
+        const method = part.method as string;
+        const amount = Number(part.amount ?? 0);
+        if (!byPaymentMethod[method]) byPaymentMethod[method] = { total: 0, count: 0 };
+        byPaymentMethod[method].total += amount;
+      }
+      // Count the split sale once under 'split' for transaction count purposes only
+      if (!byPaymentMethod['split']) byPaymentMethod['split'] = { total: 0, count: 0 };
+      byPaymentMethod['split'].count += 1;
+      byPaymentMethod['split'].total += Number(sale.total);
+    }
+
     const systemMomo = byPaymentMethod['momo']?.total ?? 0;
     const totalCashIn = cashEntries.filter(e => e.type === 'cash_in').reduce((s, e) => s + e.amount, 0);
     const totalCashOut = cashEntries.filter(e => e.type === 'cash_out').reduce((s, e) => s + e.amount, 0);
