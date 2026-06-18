@@ -103,7 +103,7 @@ daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next)
     ]);
 
     const totalRevenue = Number(salesSummary._sum.total ?? 0);
-    const byPaymentMethod: Record<string, { total: number; count: number }> = {};
+    const byPaymentMethod: Record<string, { total: number; count: number; components?: Record<string, number> }> = {};
 
     // Build breakdown from non-split sales
     for (const row of paymentBreakdown) {
@@ -113,22 +113,23 @@ daySessionsRouter.get('/:id', canView, async (req: Request, res: Response, next)
       };
     }
 
-    // Distribute split sale amounts into their component methods
-    for (const sale of splitSales) {
-      const parts = (sale.splitPayments as any[]) ?? [];
-      for (const part of parts) {
-        const method = part.method as string;
-        const amount = Number(part.amount ?? 0);
-        if (!byPaymentMethod[method]) byPaymentMethod[method] = { total: 0, count: 0 };
-        byPaymentMethod[method].total += amount;
+    // Build split entry with its own row and component breakdown
+    if (splitSales.length > 0) {
+      const splitTotal = splitSales.reduce((s, sale) => s + Number(sale.total), 0);
+      const splitComponents: Record<string, number> = {};
+      for (const sale of splitSales) {
+        const parts = (sale.splitPayments as any[]) ?? [];
+        for (const part of parts) {
+          const method = part.method as string;
+          const amount = Number(part.amount ?? 0);
+          splitComponents[method] = (splitComponents[method] ?? 0) + amount;
+        }
       }
-      // Count the split sale once under 'split' for transaction count purposes only
-      if (!byPaymentMethod['split']) byPaymentMethod['split'] = { total: 0, count: 0 };
-      byPaymentMethod['split'].count += 1;
-      byPaymentMethod['split'].total += Number(sale.total);
+      byPaymentMethod['split'] = { total: splitTotal, count: splitSales.length, components: splitComponents };
     }
 
-    const systemMomo = byPaymentMethod['momo']?.total ?? 0;
+    // systemMomo = pure momo sales + momo portion of any split sales
+    const systemMomo = (byPaymentMethod['momo']?.total ?? 0) + (byPaymentMethod['split']?.components?.['momo'] ?? 0);
     const totalCashIn = cashEntries.filter(e => e.type === 'cash_in').reduce((s, e) => s + e.amount, 0);
     const totalCashOut = cashEntries.filter(e => e.type === 'cash_out').reduce((s, e) => s + e.amount, 0);
 

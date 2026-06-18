@@ -573,19 +573,30 @@ function TodayPanel() {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Sales by Payment Method</p>
                   <div className="space-y-2">
                     {[
-                      { key: 'cash',     label: 'Cash',         color: 'bg-green-500',  text: 'text-green-700'  },
-                      { key: 'momo',     label: 'Mobile Money', color: 'bg-purple-500', text: 'text-purple-700' },
-                      { key: 'paystack', label: 'Card / Bank',  color: 'bg-brand-500',  text: 'text-brand-700'  },
-                      { key: 'credit',   label: 'Credit',       color: 'bg-red-400',    text: 'text-red-600'    },
+                      { key: 'cash',     label: 'Cash',          color: 'bg-green-500',  text: 'text-green-700'  },
+                      { key: 'momo',     label: 'Mobile Money',  color: 'bg-purple-500', text: 'text-purple-700' },
+                      { key: 'paystack', label: 'Card / Bank',   color: 'bg-brand-500',  text: 'text-brand-700'  },
+                      { key: 'credit',   label: 'Credit',        color: 'bg-red-400',    text: 'text-red-600'    },
+                      { key: 'split',    label: 'Split Payment', color: 'bg-yellow-500', text: 'text-yellow-700' },
                     ].map(({ key, label, color, text }) => {
                       const row = summary.byPaymentMethod[key];
                       if (!row) return null;
+                      const components = (row as any).components as Record<string, number> | undefined;
+                      const componentLabels: Record<string, string> = { cash: 'Cash', momo: 'Mobile Money', paystack: 'Card / Bank', credit: 'Credit' };
                       return (
-                        <div key={key} className="flex items-center gap-3">
-                          <div className={clsx('w-2.5 h-2.5 rounded-full shrink-0', color)} />
-                          <span className="text-sm text-gray-600 flex-1">{label}</span>
-                          <span className="text-xs text-gray-400">{row.count} sales</span>
-                          <span className={clsx('text-sm font-bold', text)}>GH₵{Number(row.total).toFixed(2)}</span>
+                        <div key={key}>
+                          <div className="flex items-center gap-3">
+                            <div className={clsx('w-2.5 h-2.5 rounded-full shrink-0', color)} />
+                            <span className="text-sm text-gray-600 flex-1">{label}</span>
+                            <span className="text-xs text-gray-400">{row.count} sales</span>
+                            <span className={clsx('text-sm font-bold', text)}>GH₵{Number(row.total).toFixed(2)}</span>
+                          </div>
+                          {components && Object.entries(components).map(([m, amt]) => (
+                            <div key={m} className="flex items-center gap-3 ml-5 mt-0.5">
+                              <span className="text-xs text-gray-400 flex-1">↳ {componentLabels[m] ?? m}</span>
+                              <span className="text-xs text-gray-500">GH₵{Number(amt).toFixed(2)}</span>
+                            </div>
+                          ))}
                         </div>
                       );
                     })}
@@ -700,18 +711,29 @@ function SessionHistoryRow({ session }: { session: any }) {
                   <p className="text-xs font-semibold text-gray-500 mb-1.5">Sales by Payment Method</p>
                   <div className="space-y-1.5">
                     {[
-                      { key: 'cash', label: 'Cash', color: 'bg-green-500', text: 'text-green-700' },
-                      { key: 'momo', label: 'Mobile Money', color: 'bg-purple-500', text: 'text-purple-700' },
-                      { key: 'paystack', label: 'Card / Bank', color: 'bg-brand-500', text: 'text-brand-700' },
-                      { key: 'credit', label: 'Credit', color: 'bg-red-400', text: 'text-red-600' },
+                      { key: 'cash',     label: 'Cash',          color: 'bg-green-500',  text: 'text-green-700'  },
+                      { key: 'momo',     label: 'Mobile Money',  color: 'bg-purple-500', text: 'text-purple-700' },
+                      { key: 'paystack', label: 'Card / Bank',   color: 'bg-brand-500',  text: 'text-brand-700'  },
+                      { key: 'credit',   label: 'Credit',        color: 'bg-red-400',    text: 'text-red-600'    },
+                      { key: 'split',    label: 'Split Payment', color: 'bg-yellow-500', text: 'text-yellow-700' },
                     ].map(({ key, label, color, text }) => {
                       const row = summary.byPaymentMethod[key];
                       if (!row) return null;
+                      const components = (row as any).components as Record<string, number> | undefined;
+                      const componentLabels: Record<string, string> = { cash: 'Cash', momo: 'Mobile Money', paystack: 'Card / Bank', credit: 'Credit' };
                       return (
-                        <div key={key} className="flex items-center gap-2 text-xs">
-                          <div className={clsx('w-2 h-2 rounded-full shrink-0', color)} />
-                          <span className="text-gray-600 flex-1">{label} <span className="text-gray-400">({row.count})</span></span>
-                          <span className={clsx('font-semibold', text)}>GH₵{Number(row.total).toFixed(2)}</span>
+                        <div key={key}>
+                          <div className="flex items-center gap-2 text-xs">
+                            <div className={clsx('w-2 h-2 rounded-full shrink-0', color)} />
+                            <span className="text-gray-600 flex-1">{label} <span className="text-gray-400">({row.count})</span></span>
+                            <span className={clsx('font-semibold', text)}>GH₵{Number(row.total).toFixed(2)}</span>
+                          </div>
+                          {components && Object.entries(components).map(([m, amt]) => (
+                            <div key={m} className="flex items-center gap-2 text-xs ml-4 mt-0.5">
+                              <span className="text-gray-400 flex-1">↳ {componentLabels[m] ?? m}</span>
+                              <span className="text-gray-500">GH₵{Number(amt).toFixed(2)}</span>
+                            </div>
+                          ))}
                         </div>
                       );
                     })}
