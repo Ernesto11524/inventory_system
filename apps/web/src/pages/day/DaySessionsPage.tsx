@@ -737,6 +737,10 @@ function SessionHistoryRow({ session }: { session: any }) {
                         </div>
                       );
                     })}
+                    <div className="flex justify-between pt-2 border-t border-gray-100 text-xs font-bold">
+                      <span className="text-gray-700">Total</span>
+                      <span className="text-gray-900">GH₵{Number(summary.totalRevenue).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               )}
