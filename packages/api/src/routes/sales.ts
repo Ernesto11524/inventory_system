@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import prisma from '../prisma/client';
 import { successResponse, buildPagination, ConflictError } from '../utils/response';
 import { authenticate } from '../middleware/auth';
@@ -44,7 +44,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
             date: today,
             openedBy: admin.id,
             status: 'open',
-            notes: '🤖 Auto-opened when first sale attempted',
+            notes: 'ðŸ¤– Auto-opened when first sale attempted',
           },
         });
       } else {
@@ -114,7 +114,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
       }
 
       return newSale;
-    });
+    }, { timeout: 30000 });
 
     // Invalidate cache after successful sale
     await Promise.all([
@@ -127,7 +127,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
     await logActivity(
       req.user!.userId,
       'stock_sale',
-      `POS Sale ${receiptNo} - ${items.length} items - Total: GH₵${total}`,
+      `POS Sale ${receiptNo} - ${items.length} items - Total: GHâ‚µ${total}`,
       req.ip,
     );
 
@@ -276,7 +276,7 @@ salesRouter.get('/summary/today', async (req: Request, res: Response, next) => {
     byPaymentMethod[row.paymentMethod] = Number(row._sum.total ?? 0);
   }
 
-  // Profit requires item-level data — keep a lightweight query only for profit
+  // Profit requires item-level data â€” keep a lightweight query only for profit
   const profitItems = await prisma.saleItem.findMany({
     where: { sale: { createdAt: { gte: today, lt: tomorrow } } },
     select: { quantity: true, unitPrice: true, costPrice: true },
