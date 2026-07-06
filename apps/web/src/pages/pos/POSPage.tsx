@@ -860,7 +860,7 @@ export function POSPage() {
       {/* Left — Products */}
       <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden border-r border-gray-200">
         <div className="p-3 bg-white border-b border-gray-200 space-y-2 shrink-0">
-          {summary && (
+          {summary && (user?.role === 'admin' || user?.role === 'manager') && (
             <div className="flex gap-3 text-xs bg-brand-50 rounded-lg px-3 py-2 items-center flex-wrap">
               <span className="text-brand-700 font-semibold">📅 Today:</span>
               <span className="text-brand-600">{summary.totalTransactions} sales · {summary.totalItems} items</span>
