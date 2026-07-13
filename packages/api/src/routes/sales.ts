@@ -44,7 +44,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
             date: today,
             openedBy: admin.id,
             status: 'open',
-            notes: 'ðŸ¤– Auto-opened when first sale attempted',
+            notes: 'Auto-opened when first sale attempted',
           },
         });
       } else {
@@ -127,7 +127,7 @@ salesRouter.post('/', async (req: Request, res: Response, next) => {
     await logActivity(
       req.user!.userId,
       'stock_sale',
-      `POS Sale ${receiptNo} - ${items.length} items - Total: GHâ‚µ${total}`,
+      `POS Sale ${receiptNo} - ${items.length} items - Total: GH₵${Number(total).toFixed(2)}`,
       req.ip,
     );
 
