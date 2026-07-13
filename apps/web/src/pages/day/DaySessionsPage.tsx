@@ -10,7 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { get, post, patch, del } from '../../utils/api';
-import { PageHeader, LoadingSpinner } from '../../components/ui/index';
+import { PageHeader, LoadingSpinner, Pagination } from '../../components/ui/index';
 import type { DaySession } from '@inventory/shared';
 
 const ACTION_COLOR: Record<string, string> = {
@@ -818,16 +818,19 @@ function SessionHistoryRow({ session }: { session: any }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const HISTORY_LIMIT = 15;
+
 export function DaySessionsPage() {
+  const [historyPage, setHistoryPage] = useState(1);
+
   const { data: listRes, isLoading } = useQuery({
-    queryKey: ['day-sessions-list'],
-    queryFn: () => get<DaySession[]>('/day-sessions?limit=30'),
+    queryKey: ['day-sessions-list', historyPage],
+    queryFn: () => get<DaySession[]>('/day-sessions', { page: historyPage, limit: HISTORY_LIMIT, excludeToday: true }),
     refetchInterval: 60000,
   });
 
   const sessions: DaySession[] = (listRes?.data as any)?.items ?? listRes?.data ?? [];
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const past = sessions.filter((s) => s.date !== today);
+  const pagination = (listRes as any)?.pagination;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -844,17 +847,33 @@ export function DaySessionsPage() {
       </section>
 
       <section>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Clock size={13} /> Previous Sessions
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+            <Clock size={13} /> Previous Sessions
+          </h2>
+          {pagination && pagination.total > 0 && (
+            <span className="text-xs text-gray-400">{pagination.total} session{pagination.total !== 1 ? 's' : ''} total</span>
+          )}
+        </div>
         {isLoading ? (
           <LoadingSpinner className="h-32" />
-        ) : past.length === 0 ? (
+        ) : sessions.length === 0 ? (
           <div className="card p-8 text-center text-gray-400 text-sm">No previous sessions yet</div>
         ) : (
-          <div className="space-y-2">
-            {past.map((s) => <SessionHistoryRow key={s.id} session={s} />)}
-          </div>
+          <>
+            <div className="space-y-2">
+              {sessions.map((s) => <SessionHistoryRow key={s.id} session={s} />)}
+            </div>
+            {pagination && (
+              <Pagination
+                page={historyPage}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                limit={HISTORY_LIMIT}
+                onPageChange={(p) => { setHistoryPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              />
+            )}
+          </>
         )}
       </section>
     </div>

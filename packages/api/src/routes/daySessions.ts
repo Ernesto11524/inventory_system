@@ -31,13 +31,17 @@ daySessionsRouter.get('/today', canView, async (_req: Request, res: Response, ne
 // GET /api/day-sessions — list all sessions (paged)
 daySessionsRouter.get('/', canView, async (req: Request, res: Response, next) => {
   try {
-  const { page = 1, limit = 30 } = req.query;
+  const { page = 1, limit = 30, excludeToday } = req.query;
   const pageNum = Number(page);
   const limitNum = Math.min(Number(limit), 100);
   const skip = (pageNum - 1) * limitNum;
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const where = excludeToday === 'true' ? { date: { not: today } } : {};
+
   const [sessions, total] = await prisma.$transaction([
     prisma.daySession.findMany({
+      where,
       include: {
         opener: { select: { id: true, name: true } },
         closer: { select: { id: true, name: true } },
@@ -46,7 +50,7 @@ daySessionsRouter.get('/', canView, async (req: Request, res: Response, next) =>
       skip,
       take: limitNum,
     }),
-    prisma.daySession.count(),
+    prisma.daySession.count({ where }),
   ]);
 
   successResponse(res, sessions, 'Day sessions retrieved', 200, buildPagination(pageNum, limitNum, total));
