@@ -40,6 +40,19 @@ alertsRouter.get('/', async (req: Request, res: Response, next) => {
   }
 });
 
+alertsRouter.patch('/resolve-all', async (_req: Request, res: Response, next) => {
+  try {
+    const result = await prisma.alert.updateMany({
+      where: { resolved: false },
+      data: { resolved: true },
+    });
+    if (io) emitAlertResolved(io, { alertId: 'all' });
+    successResponse(res, { count: result.count }, `${result.count} alerts cleared`);
+  } catch (err) {
+    next(err);
+  }
+});
+
 alertsRouter.patch('/:id/resolve', async (req: Request, res: Response, next) => {
   try {
   const { id } = req.params;

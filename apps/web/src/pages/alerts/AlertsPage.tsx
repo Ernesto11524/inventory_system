@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, AlertTriangle, XCircle, ExternalLink } from 'lucide-react';
+import { Bell, CheckCircle, AlertTriangle, XCircle, ExternalLink, CheckCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { get, patch } from '../../utils/api';
@@ -47,6 +47,16 @@ export function AlertsPage() {
     },
   });
 
+  const clearAllMutation = useMutation({
+    mutationFn: () => patch('/alerts/resolve-all'),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['alert-count'] });
+      toast.success(`${res?.data?.count ?? 'All'} alerts cleared`);
+    },
+    onError: () => toast.error('Failed to clear alerts'),
+  });
+
   const alerts = data?.data || [];
   const pagination = data?.pagination;
 
@@ -56,23 +66,39 @@ export function AlertsPage() {
         title="Alerts"
         subtitle="Stock alerts and notifications"
         actions={
-          <div className="flex bg-white border border-gray-200 rounded-lg p-0.5">
-            {[
-              { key: 'unresolved', label: 'Unresolved' },
-              { key: 'resolved', label: 'Resolved' },
-              { key: 'all', label: 'All' },
-            ].map(({ key, label }) => (
+          <div className="flex items-center gap-2">
+            {filter === 'unresolved' && alerts.length > 0 && (
               <button
-                key={key}
-                onClick={() => { setFilter(key as any); setPage(1); }}
-                className={clsx(
-                  'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-                  filter === key ? 'bg-brand-600 text-white' : 'text-gray-600 hover:text-gray-900',
-                )}
+                onClick={() => {
+                  if (window.confirm('Mark all unresolved alerts as cleared? This cannot be undone.')) {
+                    clearAllMutation.mutate();
+                  }
+                }}
+                disabled={clearAllMutation.isPending}
+                className="btn-sm flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
               >
-                {label}
+                <CheckCheck size={14} />
+                {clearAllMutation.isPending ? 'Clearing…' : 'Clear All'}
               </button>
-            ))}
+            )}
+            <div className="flex bg-white border border-gray-200 rounded-lg p-0.5">
+              {[
+                { key: 'unresolved', label: 'Unresolved' },
+                { key: 'resolved', label: 'Resolved' },
+                { key: 'all', label: 'All' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => { setFilter(key as any); setPage(1); }}
+                  className={clsx(
+                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                    filter === key ? 'bg-brand-600 text-white' : 'text-gray-600 hover:text-gray-900',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
