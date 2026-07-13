@@ -105,7 +105,7 @@ export function InventoryPage() {
                   const min = item.minStockLevel ?? 0;
                   const isOut = current <= 0;
                   const isLow = !isOut && current < min;
-                  const costPrice = item.costPrice ?? 0;
+                  const costPrice = item.product?.costPrice ?? item.costPrice ?? 0;
                   const stockValue = (current * Number(costPrice)).toFixed(2);
                   const productName = item.product?.name || item.productName || 'Unknown';
                   const productSku = item.product?.sku || item.productSku || '—';
