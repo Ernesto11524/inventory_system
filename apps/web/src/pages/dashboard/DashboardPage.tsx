@@ -118,8 +118,8 @@ export function DashboardPage() {
         </button>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      {/* Metric cards — row 1: inventory value */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard
           label="Total Products"
           value={m?.totalProducts?.toLocaleString() ?? '—'}
@@ -141,6 +141,10 @@ export function DashboardPage() {
           color="bg-indigo-500"
           subtext="At selling price"
         />
+      </div>
+
+      {/* Metric cards — row 2: stock health */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <MetricCard
           label="Low Stock"
           value={m?.lowStockCount?.toString() ?? '—'}
