@@ -97,6 +97,7 @@ inventoryRouter.get('/summary', async (req: Request, res: Response, next) => {
     SELECT
       COUNT(DISTINCT p.id)::int as "totalProducts",
       COALESCE(SUM(i."currentStock" * p."costPrice"), 0)::float as "totalStockValue",
+      COALESCE(SUM(i."currentStock" * p."price"), 0)::float as "totalRetailValue",
       COUNT(CASE WHEN i."currentStock" < p."minStockLevel" AND i."currentStock" > 0 THEN 1 END)::int as "lowStockCount",
       COUNT(CASE WHEN i."currentStock" <= 0 THEN 1 END)::int as "outOfStockCount"
     FROM products p

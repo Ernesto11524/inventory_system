@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import {
-  Package, TrendingDown, AlertTriangle, DollarSign,
+  Package, TrendingDown, AlertTriangle, DollarSign, Tag,
   ArrowUpRight, ArrowDownRight, RefreshCw,
 } from 'lucide-react';
 import {
@@ -119,7 +119,7 @@ export function DashboardPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <MetricCard
           label="Total Products"
           value={m?.totalProducts?.toLocaleString() ?? '—'}
@@ -133,6 +133,13 @@ export function DashboardPage() {
           icon={DollarSign}
           color="bg-emerald-500"
           subtext="At cost price"
+        />
+        <MetricCard
+          label="Retail Value"
+          value={m ? formatCurrency(m.totalRetailValue) : '—'}
+          icon={Tag}
+          color="bg-indigo-500"
+          subtext="At selling price"
         />
         <MetricCard
           label="Low Stock"

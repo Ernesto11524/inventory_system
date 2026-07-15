@@ -196,6 +196,7 @@ export interface ApiResponse<T = unknown> {
 export interface DashboardMetrics {
   totalProducts: number;
   totalStockValue: number;
+  totalRetailValue: number;
   lowStockCount: number;
   outOfStockCount: number;
 }
