@@ -54,7 +54,7 @@ inventoryRouter.get('/', async (req: Request, res: Response, next) => {
 
 /**
  * GET /api/inventory/low-stock
- * Products with stock below minimum level
+ * Products with stock below minimum level (but not zero)
  */
 inventoryRouter.get('/low-stock', async (req: Request, res: Response, next) => {
   try {
@@ -62,7 +62,7 @@ inventoryRouter.get('/low-stock', async (req: Request, res: Response, next) => {
   if (cached) return successResponse(res, cached, 'Low stock items retrieved');
 
   const lowStock = await prisma.$queryRaw<any[]>`
-    SELECT 
+    SELECT
       i.id,
       i."productId",
       i."currentStock",
@@ -76,12 +76,44 @@ inventoryRouter.get('/low-stock', async (req: Request, res: Response, next) => {
     JOIN products p ON i."productId" = p.id
     LEFT JOIN categories c ON p."categoryId" = c.id
     WHERE p."deletedAt" IS NULL
+      AND i."currentStock" > 0
       AND i."currentStock" < p."minStockLevel"
     ORDER BY (i."currentStock"::float / NULLIF(p."minStockLevel", 0)) ASC
   `;
 
   await cacheSet(CACHE_KEYS.LOW_STOCK, lowStock, CACHE_TTL.SHORT);
   successResponse(res, lowStock, 'Low stock items retrieved');
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/inventory/out-of-stock
+ * Products with zero or negative stock
+ */
+inventoryRouter.get('/out-of-stock', async (req: Request, res: Response, next) => {
+  try {
+  const outOfStock = await prisma.$queryRaw<any[]>`
+    SELECT
+      i.id,
+      i."productId",
+      i."currentStock",
+      i."lastUpdated",
+      p.name as "productName",
+      p.sku as "productSku",
+      p."minStockLevel",
+      p."imageUrl",
+      c.name as "categoryName"
+    FROM inventory i
+    JOIN products p ON i."productId" = p.id
+    LEFT JOIN categories c ON p."categoryId" = c.id
+    WHERE p."deletedAt" IS NULL
+      AND i."currentStock" <= 0
+    ORDER BY i."lastUpdated" DESC
+  `;
+
+  successResponse(res, outOfStock, 'Out of stock items retrieved');
   } catch (err) {
     next(err);
   }

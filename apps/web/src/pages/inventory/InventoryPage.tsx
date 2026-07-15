@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, AlertTriangle, Warehouse } from 'lucide-react';
 import { get } from '../../utils/api';
 import { LoadingSpinner, EmptyState, PageHeader, Pagination } from '../../components/ui/index';
@@ -19,9 +19,13 @@ function StockBar({ current, min }: { current: number; min: number }) {
 }
 
 export function InventoryPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'all' | 'low'>('all');
+  const [tab, setTab] = useState<'all' | 'low' | 'out'>(() => {
+    const t = searchParams.get('tab');
+    return t === 'low' ? 'low' : t === 'out' ? 'out' : 'all';
+  });
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
@@ -31,6 +35,8 @@ export function InventoryPage() {
     queryFn: () =>
       tab === 'low'
         ? get<any[]>('/inventory/low-stock')
+        : tab === 'out'
+        ? get<any[]>('/inventory/out-of-stock')
         : get<any[]>('/inventory', { page, limit: 20, search }),
     refetchInterval: 60000,
   });
@@ -48,6 +54,7 @@ export function InventoryPage() {
           {[
             { key: 'all', label: 'All Products' },
             { key: 'low', label: '⚠️ Low Stock' },
+            { key: 'out', label: '🔴 Out of Stock' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -79,7 +86,11 @@ export function InventoryPage() {
           <LoadingSpinner className="h-64" />
         ) : items.length === 0 ? (
           <EmptyState
-            message={tab === 'low' ? 'No low stock items — great!' : 'No inventory data yet'}
+            message={
+              tab === 'low' ? 'No low stock items — great!' :
+              tab === 'out' ? 'No out of stock items — great!' :
+              'No inventory data yet'
+            }
             icon="product"
             className="h-64"
           />

@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import {
   Package, TrendingDown, AlertTriangle, DollarSign, Tag,
-  ArrowUpRight, ArrowDownRight, RefreshCw,
+  ArrowUpRight, ArrowDownRight, RefreshCw, ChevronRight,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { get } from '../../utils/api';
 import { useSocketStore } from '../../store/socketStore';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,12 +21,12 @@ import { EmptyState } from '../../components/ui/EmptyState';
 const PIE_COLORS = ['#0ea5e9', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 function MetricCard({
-  label, value, icon: Icon, color, subtext, delta,
+  label, value, icon: Icon, color, subtext, delta, onClick,
 }: {
-  label: string; value: string; icon: any; color: string; subtext?: string; delta?: number;
+  label: string; value: string; icon: any; color: string; subtext?: string; delta?: number; onClick?: () => void;
 }) {
-  return (
-    <div className="card p-5 flex items-start gap-4">
+  const inner = (
+    <>
       <div className={`p-2.5 rounded-xl ${color}`}>
         <Icon size={20} className="text-white" />
       </div>
@@ -40,8 +41,18 @@ function MetricCard({
           {Math.abs(delta)}%
         </div>
       )}
-    </div>
+      {onClick && <ChevronRight size={16} className="text-gray-300 shrink-0" />}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="card p-5 flex items-start gap-4 w-full text-left hover:shadow-md hover:border-gray-300 transition-all cursor-pointer">
+        {inner}
+      </button>
+    );
+  }
+  return <div className="card p-5 flex items-start gap-4">{inner}</div>;
 }
 
 function formatCurrency(v: number) {
@@ -50,6 +61,7 @@ function formatCurrency(v: number) {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { socket } = useSocketStore();
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -150,14 +162,16 @@ export function DashboardPage() {
           value={m?.lowStockCount?.toString() ?? '—'}
           icon={TrendingDown}
           color="bg-amber-500"
-          subtext="Below minimum"
+          subtext="Below minimum — click to view"
+          onClick={() => navigate('/inventory?tab=low')}
         />
         <MetricCard
           label="Out of Stock"
           value={m?.outOfStockCount?.toString() ?? '—'}
           icon={AlertTriangle}
           color="bg-red-500"
-          subtext="Zero inventory"
+          subtext="Zero inventory — click to view"
+          onClick={() => navigate('/inventory?tab=out')}
         />
       </div>
 
